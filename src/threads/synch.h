@@ -40,6 +40,8 @@ void cond_init (struct condition *);
 void cond_wait (struct condition *, struct lock *);
 void cond_signal (struct condition *, struct lock *);
 void cond_broadcast (struct condition *, struct lock *);
+//priority scheduling
+bool compare_sem_priority (const struct list_elem *e1, const struct list_elem *e2, void *aux);
 
 /* Optimization barrier.
 
@@ -49,7 +51,5 @@ void cond_broadcast (struct condition *, struct lock *);
 #define barrier() asm volatile ("" : : : "memory")
 
 
-//priority scheduling
-bool compare_sem_priority (const struct list_elem *e1, const struct list_elem *e2, void *aux UNUSED);
 
 #endif /* threads/synch.h */

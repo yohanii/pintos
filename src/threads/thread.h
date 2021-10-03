@@ -156,6 +156,7 @@ void thread_wake(int64_t ticks);
 
 //priority scheduling
 bool compare_priority(struct list_elem *e1, struct list_elem *e2, void *aux UNUSED);
+bool check_priority(int priority);
 bool compare_donate_priority (const struct list_elem *e1, const struct list_elem *e2, void *aux UNUSED);
 void donate (void);
 void remove_in_donationlist (struct lock *lock);
