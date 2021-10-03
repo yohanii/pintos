@@ -161,6 +161,6 @@ bool compare_donate_priority (const struct list_elem *e1, const struct list_elem
 void donate (void);
 void remove_in_donationlist (struct lock *lock);
 void refresh_priority (void);
-static struct list get_readylist(void);
+struct list* get_readylist(void);
 
 #endif /* threads/thread.h */

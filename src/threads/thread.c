@@ -670,8 +670,8 @@ void refresh_priority (void)
    //  else priority = max priority in donations list and init_priority
 }
 
-static struct list get_readylist(void)
+struct list* get_readylist(void)
 {
-  return ready_list;
+  return &ready_list;
 }
 
