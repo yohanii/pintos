@@ -669,3 +669,9 @@ void refresh_priority (void)
 // if donation list is empty then priority = init_priority
    //  else priority = max priority in donations list and init_priority
 }
+
+static struct list get_readylist(void)
+{
+  return ready_list;
+}
+
