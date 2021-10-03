@@ -336,3 +336,9 @@ cond_broadcast (struct condition *cond, struct lock *lock)
   while (!list_empty (&cond->waiters))
     cond_signal (cond, lock);
 }
+
+bool compare_sem_priority (const struct list_elem *e1, const struct list_elem *e2, void *aux UNUSED)
+{
+  //TODO
+
+}

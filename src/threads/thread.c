@@ -616,3 +616,34 @@ void thread_wake(int64_t ticks){
         }
   }
 }
+
+bool compare_priority(struct list_elem *e1, struct list_elem *e2, void *aux UNUSED){
+  //TODO
+}
+
+bool compare_donate_priority (const struct list_elem *e1, const struct list_elem *e2, void *aux UNUSED)
+{
+//TODO
+
+}
+
+void donate (void)
+{
+ /* for max nested times {
+   if waitinglock is NULL then break;
+   holder priority = current priority;
+   current = holder;
+}*/
+}
+void remove_in_donationlist (struct lock *lock)
+{
+ /* for element in donations list {
+   if waitinglock == lock then
+     remove element
+}*/
+}
+void refresh_priority (void)
+{
+// if donation list is empty then priority = init_priority
+   //  else priority = max priority in donations list and init_priority
+}
