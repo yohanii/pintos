@@ -28,6 +28,9 @@ static struct list ready_list;
    when they are first scheduled and removed when they exit. */
 static struct list all_list;
 
+/* List of sleep thread. */
+static struct list sleep_list;
+
 /* Idle thread. */
 static struct thread *idle_thread;
 
@@ -92,6 +95,7 @@ thread_init (void)
   lock_init (&tid_lock);
   list_init (&ready_list);
   list_init (&all_list);
+  list_init (&sleep_list);
 
   /* Set up a thread structure for the running thread. */
   initial_thread = running_thread ();
@@ -133,6 +137,8 @@ thread_tick (void)
 #endif
   else
     kernel_ticks++;
+
+  thread_wake(timer_ticks()); //find thread_wake for 1 tick
 
   /* Enforce preemption. */
   if (++thread_ticks >= TIME_SLICE)
@@ -582,3 +588,31 @@ allocate_tid (void)
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
+
+
+void thread_sleep(int64_t ticks){
+  //disable intr and store the old intr_level
+  enum intr_level old_level;
+  old_level = intr_disable();
+
+  ASSERT(thread_current() != idle_thread);
+  thread_current()->sleep_time = ticks;
+  list_push_back(&sleep_list, &thread_current()->elem);
+  thread_block();
+
+  intr_set_level(old_level);
+}
+
+void thread_wake(int64_t ticks){
+  struct list_elem *elem;
+  for(elem = list_begin (&sleep_list);elem != list_end(&sleep_list);){
+        struct thread *thread = list_entry(elem, struct thread, elem);
+        if(thread->sleep_time <= ticks){
+          elem = list_remove(elem);
+          thread_unblock(thread);
+        }
+        else{
+          elem = list_next(elem);
+        }
+  }
+}
