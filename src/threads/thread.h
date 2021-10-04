@@ -92,13 +92,12 @@ struct thread
 
     int64_t sleep_time;                 /* Thread sleep time. */
 
-   int init_priority;
+    /* priority donation */
+    int init_priority;
    
-   struct lock *waitinglock;
-   struct list donations;
-   struct list_elem donation_elem;
-
-
+    struct lock *waitinglock;
+    struct list donations;
+    struct list_elem donation_elem;
 
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */

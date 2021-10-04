@@ -488,6 +488,11 @@ init_thread (struct thread *t, const char *name, int priority)
   t->priority = priority;
   t->magic = THREAD_MAGIC;
 
+  /* priority donation */
+  t->init_priority = priority;
+  t->waitinglock = NULL;
+  list_init (&t->donations);
+
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);
   intr_set_level (old_level);
@@ -646,7 +651,7 @@ bool check_priority(int priority){
 bool compare_donate_priority (const struct list_elem *e1, const struct list_elem *e2, void *aux UNUSED)
 {
 //TODO
-
+  return list_entry( e1, struct thread, elem)->priority > list_entry( e2, struct thread, elem)->priority;
 }
 
 void donate (void)
