@@ -73,6 +73,8 @@ static void *alloc_frame (struct thread *, size_t size);
 static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
+void refresh_priority (void);
+
 
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
@@ -353,7 +355,9 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
-  thread_current ()->priority = new_priority;
+  thread_current ()->init_priority = new_priority;
+
+  refresh_priority();
 
   if(!list_empty(&ready_list)){
     if(check_priority(thread_current()->priority)){
@@ -650,29 +654,53 @@ bool check_priority(int priority){
 
 bool compare_donate_priority (const struct list_elem *e1, const struct list_elem *e2, void *aux UNUSED)
 {
-//TODO
-  return list_entry( e1, struct thread, elem)->priority > list_entry( e2, struct thread, elem)->priority;
+
+  return list_entry( e1, struct thread, donation_elem)->priority > list_entry( e2, struct thread, donation_elem)->priority;
 }
 
 void donate (void)
 {
- /* for max nested times {
-   if waitinglock is NULL then break;
-   holder priority = current priority;
-   current = holder;
-}*/
+  int max_nested = 10;
+  struct thread *current = thread_current();
+
+  for(int i=0; i<max_nested;i++){
+    if(current->waitinglock == NULL){
+      break;
+    }
+    current->waitinglock->holder->priority = current->priority;
+    current = current-> waitinglock-> holder;
+  }
 }
 void remove_in_donationlist (struct lock *lock)
 {
- /* for element in donations list {
-   if waitinglock == lock then
-     remove element
-}*/
+  struct thread *current = thread_current();
+  struct list_elem *dona_elem = list_begin(&current->donations);
+ 
+  while(dona_elem!=list_end(&current->donations)){
+    struct thread *dona_thread = list_entry(dona_elem, struct thread, donation_elem);
+    if(dona_thread->waitinglock == lock){
+      list_remove(&dona_thread->donation_elem);
+    }
+
+    dona_elem = list_next(dona_elem);
+  }  
 }
 void refresh_priority (void)
 {
-// if donation list is empty then priority = init_priority
-   //  else priority = max priority in donations list and init_priority
+  struct thread *current = thread_current();
+  
+  if(list_empty(&current->donations)){
+    current->priority = current->init_priority;
+  }else{
+    list_sort(&current->donations, compare_donate_priority, 0);
+    struct thread *max_thread = list_entry(list_front(&current->donations), struct thread, donation_elem);
+    if(max_thread->priority>current->init_priority){
+      current->priority = max_thread->priority;    
+    }else{
+      current->priority = current->init_priority;
+    }
+  }
+
 }
 
 struct list* get_readylist(void)
