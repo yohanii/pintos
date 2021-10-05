@@ -166,4 +166,12 @@ void remove_in_donationlist (struct lock *lock);
 void refresh_priority (void);
 struct list* get_readylist(void);
 
+/* mlfqs */
+void recent_cpu(struct thread *thread);
+void load_avg();
+void calc_priority();
+void recent_cpu_incr();
+
+
+
 #endif /* threads/thread.h */
