@@ -99,6 +99,10 @@ struct thread
     struct list donations;
     struct list_elem donation_elem;
 
+    /* for mlfqs */
+    int nice;
+    int recent_cpu;
+
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 

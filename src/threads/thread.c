@@ -11,6 +11,9 @@
 #include "threads/switch.h"
 #include "threads/synch.h"
 #include "threads/vaddr.h"
+
+#include"threads/fixed.h"
+
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
@@ -497,6 +500,10 @@ init_thread (struct thread *t, const char *name, int priority)
   t->waitinglock = NULL;
   list_init (&t->donations);
 
+  /* mlfqs */
+  t->nice = 0;
+  t->recent_cpu = 0;
+
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);
   intr_set_level (old_level);
@@ -706,5 +713,22 @@ void refresh_priority (void)
 struct list* get_readylist(void)
 {
   return &ready_list;
+}
+
+void recent_cpu(struct thread *thread){
+   //thread != idle_thread;
+   //recent_cpu = (2 * load_avg) / (2 * load_avg + 1) * recent_cpu + nice;
+   //using float point calculation
+}
+void load_avg(){
+   //load_avg = (59/60) * load_avg + (1/60) * ready_threads;
+   //using float point calculation
+   //Assert load_avg < 0;
+}
+void calc_priority(){
+    //priority = PRI_MAX – (recent_cpu / 4) – (nice * 2);
+}
+void recent_cpu_incr(){
+   //recent cpu value ++;
 }
 
