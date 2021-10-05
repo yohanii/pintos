@@ -73,6 +73,8 @@ static void *alloc_frame (struct thread *, size_t size);
 static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
+void refresh_priority (void);
+
 
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
@@ -207,8 +209,18 @@ thread_create (const char *name, int priority,
   /* Add to run queue. */
   thread_unblock (t);
 
+  //if running thread priority < ready_list first thread priority then
+  //     thread_yield();
+  if(!list_empty(&ready_list)){
+    if(check_priority(thread_current()->priority)){
+      thread_yield();
+    }
+  }
+  
   return tid;
 }
+
+
 
 /* Puts the current thread to sleep.  It will not be scheduled
    again until awoken by thread_unblock().
@@ -243,7 +255,8 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  list_push_back (&ready_list, &t->elem);
+  //list_push_back (&ready_list, &t->elem);
+  list_insert_ordered(&ready_list,&t->elem, compare_priority, 0);
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
@@ -314,7 +327,8 @@ thread_yield (void)
 
   old_level = intr_disable ();
   if (cur != idle_thread) 
-    list_push_back (&ready_list, &cur->elem);
+    //list_push_back (&ready_list, &cur->elem);
+    list_insert_ordered(&ready_list,&cur->elem, compare_priority, 0);
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -341,7 +355,15 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
-  thread_current ()->priority = new_priority;
+  thread_current ()->init_priority = new_priority;
+
+  refresh_priority();
+
+  if(!list_empty(&ready_list)){
+    if(check_priority(thread_current()->priority)){
+      thread_yield();
+    }
+  }
 }
 
 /* Returns the current thread's priority. */
@@ -469,6 +491,11 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
+
+  /* priority donation */
+  t->init_priority = priority;
+  t->waitinglock = NULL;
+  list_init (&t->donations);
 
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);
@@ -616,3 +643,68 @@ void thread_wake(int64_t ticks){
         }
   }
 }
+
+bool compare_priority(struct list_elem *e1, struct list_elem *e2, void *aux UNUSED){
+  return list_entry( e1, struct thread, elem)->priority > list_entry( e2, struct thread, elem)->priority;
+}
+
+bool check_priority(int priority){
+  return priority < (list_entry (list_front(&ready_list), struct thread, elem))->priority;
+}
+
+bool compare_donate_priority (const struct list_elem *e1, const struct list_elem *e2, void *aux UNUSED)
+{
+
+  return list_entry( e1, struct thread, donation_elem)->priority > list_entry( e2, struct thread, donation_elem)->priority;
+}
+
+void donate (void)
+{
+  int max_nested = 10;
+  struct thread *current = thread_current();
+
+  for(int i=0; i<max_nested;i++){
+    if(current->waitinglock == NULL){
+      break;
+    }
+    current->waitinglock->holder->priority = current->priority;
+    current = current-> waitinglock-> holder;
+  }
+}
+void remove_in_donationlist (struct lock *lock)
+{
+  struct thread *current = thread_current();
+  struct list_elem *dona_elem = list_begin(&current->donations);
+ 
+  while(dona_elem!=list_end(&current->donations)){
+    struct thread *dona_thread = list_entry(dona_elem, struct thread, donation_elem);
+    if(dona_thread->waitinglock == lock){
+      list_remove(&dona_thread->donation_elem);
+    }
+
+    dona_elem = list_next(dona_elem);
+  }  
+}
+void refresh_priority (void)
+{
+  struct thread *current = thread_current();
+  
+  if(list_empty(&current->donations)){
+    current->priority = current->init_priority;
+  }else{
+    list_sort(&current->donations, compare_donate_priority, 0);
+    struct thread *max_thread = list_entry(list_front(&current->donations), struct thread, donation_elem);
+    if(max_thread->priority>current->init_priority){
+      current->priority = max_thread->priority;    
+    }else{
+      current->priority = current->init_priority;
+    }
+  }
+
+}
+
+struct list* get_readylist(void)
+{
+  return &ready_list;
+}
+
