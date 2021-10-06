@@ -65,6 +65,8 @@ static unsigned thread_ticks;   /* # of timer ticks since last yield. */
    Controlled by kernel command-line option "-o mlfqs". */
 bool thread_mlfqs;
 
+int load_avg;
+
 static void kernel_thread (thread_func *, void *aux);
 
 static void idle (void *aux UNUSED);
@@ -118,6 +120,7 @@ thread_start (void)
   struct semaphore idle_started;
   sema_init (&idle_started, 0);
   thread_create ("idle", PRI_MIN, idle, &idle_started);
+  load_avg = 0;
 
   /* Start preemptive thread scheduling. */
   intr_enable ();
@@ -144,6 +147,8 @@ thread_tick (void)
     kernel_ticks++;
 
   thread_wake(timer_ticks()); //find thread_wake for 1 tick
+
+
 
   /* Enforce preemption. */
   if (++thread_ticks >= TIME_SLICE)
@@ -358,6 +363,8 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
+  if (thread_mlfqs)
+    return;
   thread_current ()->init_priority = new_priority;
 
   refresh_priority();
@@ -719,16 +726,36 @@ void recent_cpu(struct thread *thread){
    //thread != idle_thread;
    //recent_cpu = (2 * load_avg) / (2 * load_avg + 1) * recent_cpu + nice;
    //using float point calculation
+
+  thread->recent_cpu = float_add(float_mult(float_div(float_mult_mix (load_avg, 2), float_add_mix(float_mult_mix(load_avg, 2), 1)), thread->recent_cpu),thread->nice);
+
 }
-void load_avg(){
+void calc_load_avg(){
    //load_avg = (59/60) * load_avg + (1/60) * ready_threads;
    //using float point calculation
    //Assert load_avg < 0;
+
+  if(thread_current() == idle_thread){
+    load_avg = float_add (float_mult (float_div (int_to_float (59), int_to_float (60)), load_avg), 
+                     float_mult_mix (float_div (int_to_float (1), int_to_float (60)), list_size(&ready_list)));
+  }
+  else{
+    load_avg = float_add (float_mult (float_div (int_to_float (59), int_to_float (60)), load_avg), 
+                     float_mult_mix (float_div (int_to_float (1), int_to_float (60)), (list_size(&ready_list)) + 1));
+
+  }
+
+  ASSERT(load_avg < 0);
+
 }
-void calc_priority(){
+void calc_priority(struct thread *thread){
     //priority = PRI_MAX – (recent_cpu / 4) – (nice * 2);
+    if(thread != idle_thread)
+      thread->priority = float_to_int (float_add_mix (float_div_mix (thread->recent_cpu, -4), PRI_MAX - thread->nice * 2));
 }
 void recent_cpu_incr(){
    //recent cpu value ++;
-}
+    if (thread_current () != idle_thread)
+        thread_current ()->recent_cpu = float_add_mix (thread_current ()->recent_cpu, 1);
+} 
 

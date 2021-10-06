@@ -168,7 +168,7 @@ struct list* get_readylist(void);
 
 /* mlfqs */
 void recent_cpu(struct thread *thread);
-void load_avg();
+void calc_load_avg();
 void calc_priority();
 void recent_cpu_incr();
 

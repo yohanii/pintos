@@ -1,4 +1,4 @@
-#include "threads/fixed.h"
+#include "fixed.h"
 
 int int_to_float(int n){
     return n * F;
