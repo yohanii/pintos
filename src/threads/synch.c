@@ -257,17 +257,18 @@ lock_try_acquire (struct lock *lock)
 void
 lock_release (struct lock *lock) 
 {
-  if (thread_mlfqs) {
-    sema_down (&lock->semaphore);
-    lock->holder = thread_current ();
-    return ;
-  }
+  
 
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
 
   lock->holder = NULL;
   
+  if(thread_mlfqs){
+    sema_up(&lock->semaphore);
+    return;
+  }
+
   remove_in_donationlist(lock);
   refresh_priority();
 

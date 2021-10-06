@@ -171,7 +171,8 @@ void recent_cpu(struct thread *thread);
 void calc_load_avg();
 void calc_priority();
 void recent_cpu_incr();
-
+void update_recent_cpu(void);
+void update_priority(void);
 
 
 #endif /* threads/thread.h */

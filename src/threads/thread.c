@@ -387,31 +387,40 @@ thread_get_priority (void)
 void
 thread_set_nice (int nice UNUSED) 
 {
-  /* Not yet implemented. */
+  enum intr_level old_level = intr_disable();
+  thread_current()->nice = nice; 
+  intr_set_level(old_level);
 }
 
 /* Returns the current thread's nice value. */
 int
 thread_get_nice (void) 
 {
-  /* Not yet implemented. */
-  return 0;
+  enum intr_level old_level = intr_disable();
+  int cur_nice = thread_current()-> nice;
+  intr_set_level(old_level);
+  return cur_nice;
 }
 
 /* Returns 100 times the system load average. */
 int
 thread_get_load_avg (void) 
 {
-  /* Not yet implemented. */
-  return 0;
+  enum intr_level old_level = intr_disable();
+  int cur_load_avg = float_to_int_round(float_mult_mix(load_avg,100));
+  intr_set_level(old_level);
+  return cur_load_avg;
+
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
 int
 thread_get_recent_cpu (void) 
 {
-  /* Not yet implemented. */
-  return 0;
+  enum intr_level old_level = intr_disable();
+  int cur_recent_cpu = float_to_int_round(float_mult_mix(thread_current()->recent_cpu,100));
+  intr_set_level(old_level);
+  return cur_recent_cpu;
 }
 
 /* Idle thread.  Executes when no other thread is ready to run.
@@ -726,9 +735,9 @@ void recent_cpu(struct thread *thread){
    //thread != idle_thread;
    //recent_cpu = (2 * load_avg) / (2 * load_avg + 1) * recent_cpu + nice;
    //using float point calculation
-
-  thread->recent_cpu = float_add(float_mult(float_div(float_mult_mix (load_avg, 2), float_add_mix(float_mult_mix(load_avg, 2), 1)), thread->recent_cpu),thread->nice);
-
+  if(thread != idle_thread){
+    thread->recent_cpu = float_add(float_mult(float_div(float_mult_mix (load_avg, 2), float_add_mix(float_mult_mix(load_avg, 2), 1)), thread->recent_cpu),thread->nice);
+  }
 }
 void calc_load_avg(){
    //load_avg = (59/60) * load_avg + (1/60) * ready_threads;
@@ -745,7 +754,7 @@ void calc_load_avg(){
 
   }
 
-  ASSERT(load_avg < 0);
+  //ASSERT(load_avg < 0);
 
 }
 void calc_priority(struct thread *thread){
@@ -758,4 +767,19 @@ void recent_cpu_incr(){
     if (thread_current () != idle_thread)
         thread_current ()->recent_cpu = float_add_mix (thread_current ()->recent_cpu, 1);
 } 
-
+void update_recent_cpu(void){
+  struct list_elem *elem = list_begin(&all_list);
+  while(elem!=list_end(&all_list)){
+    struct thread *thread = list_entry(elem, struct thread, allelem);
+    recent_cpu(thread);
+    elem = list_next(elem);
+  }
+}
+void update_priority(void){
+  struct list_elem *elem = list_begin(&all_list);
+  while(elem!=list_end(&all_list)){
+    struct thread *thread = list_entry(elem, struct thread, allelem);
+    calc_priority(thread);
+    elem = list_next(elem);
+  }
+}
