@@ -116,11 +116,12 @@ thread_init (void)
 void
 thread_start (void) 
 {
+  load_avg = 0;
   /* Create the idle thread. */
   struct semaphore idle_started;
   sema_init (&idle_started, 0);
   thread_create ("idle", PRI_MIN, idle, &idle_started);
-  load_avg = 0;
+
 
   /* Start preemptive thread scheduling. */
   intr_enable ();
@@ -146,22 +147,19 @@ thread_tick (void)
   else
     kernel_ticks++;
 
-  if(thread_mlfqs){
-    recent_cpu_incr();
-    if(timer_ticks()%4==0){
-      update_priority();  
-      if(timer_ticks()% 100 == 0){
-      update_recent_cpu();
-      calc_load_avg();
-    }
-    }
-
-  }
-
-
   thread_wake(timer_ticks()); //find thread_wake for 1 tick
 
-
+  if(thread_mlfqs){
+    if(thread_current()!= idle_thread)
+      recent_cpu_incr();
+    if(timer_ticks()%4==0){
+      if(timer_ticks()% 100 == 0){
+        update_recent_cpu();
+        calc_load_avg();
+      }
+      update_priority();  
+    }
+  }
 
   /* Enforce preemption. */
   if (++thread_ticks >= TIME_SLICE)
@@ -402,12 +400,12 @@ thread_set_nice (int nice UNUSED)
 {
   enum intr_level old_level = intr_disable();
   thread_current()->nice = nice; 
-  /* calc_priority(thread_current());
+  calc_priority(thread_current());
   if(!list_empty(&ready_list)){
     if(check_priority(thread_current()->priority)){
       thread_yield();
     }
-  }*/
+  }
   intr_set_level(old_level);
 
 }
@@ -758,6 +756,7 @@ void recent_cpu(struct thread *thread){
   if(thread != idle_thread){
     thread->recent_cpu = float_add_mix(float_mult(float_div(float_mult_mix (load_avg, 2), float_add_mix(float_mult_mix(load_avg, 2), 1)), thread->recent_cpu),thread->nice);
    }
+   
 }
 void calc_load_avg(){
    //load_avg = (59/60) * load_avg + (1/60) * ready_threads;
@@ -767,11 +766,8 @@ void calc_load_avg(){
     load_avg = float_add (float_mult (float_div (int_to_float (59), int_to_float (60)), load_avg),float_mult_mix (float_div (int_to_float (1), int_to_float (60)), list_size(&ready_list)));
   }
   else{
-    load_avg = float_add (float_mult (float_div (int_to_float (59), int_to_float (60)), load_avg), float_mult_mix (float_div (int_to_float (1), int_to_float (60)), (list_size(&ready_list)) + 1));
-
+    load_avg = float_add (float_mult (float_div (int_to_float (59), int_to_float (60)), load_avg),float_mult_mix (float_div (int_to_float (1), int_to_float (60)), list_size(&ready_list) + 1));
   }
-
-  //ASSERT(load_avg < 0);
 
 }
 void calc_priority(struct thread *thread){
