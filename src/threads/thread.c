@@ -116,7 +116,7 @@ thread_init (void)
 void
 thread_start (void) 
 {
-  load_avg = 0;
+  load_avg = int_to_float(0);
   /* Create the idle thread. */
   struct semaphore idle_started;
   sema_init (&idle_started, 0);
@@ -150,14 +150,17 @@ thread_tick (void)
   thread_wake(timer_ticks()); //find thread_wake for 1 tick
 
   if(thread_mlfqs){
-    if(thread_current()!= idle_thread)
-      recent_cpu_incr();
-    if(timer_ticks()%4==0){
-      if(timer_ticks()% 100 == 0){
+    recent_cpu_incr();
+    if(timer_ticks()% 100 == 0){
         update_recent_cpu();
         calc_load_avg();
-      }
-      update_priority();  
+    }
+    if(timer_ticks()%4==0){
+      update_priority(); 
+      if(t->priority > PRI_MAX)
+          t->priority = PRI_MAX;
+      else if(t->priority < PRI_MIN)
+          t->priority = PRI_MIN; 
     }
   }
 
@@ -396,9 +399,9 @@ thread_get_priority (void)
 
 /* Sets the current thread's nice value to NICE. */
 void
-thread_set_nice (int nice UNUSED) 
+thread_set_nice (int nice) 
 {
-  enum intr_level old_level = intr_disable();
+  enum intr_level old_level = intr_disable ();
   thread_current()->nice = nice; 
   calc_priority(thread_current());
   if(!list_empty(&ready_list)){
@@ -406,27 +409,24 @@ thread_set_nice (int nice UNUSED)
       thread_yield();
     }
   }
-  intr_set_level(old_level);
-
+  intr_set_level (old_level);
 }
 
 /* Returns the current thread's nice value. */
 int
 thread_get_nice (void) 
 {
-  enum intr_level old_level = intr_disable();
+  enum intr_level old_level = intr_disable ();
   int cur_nice = thread_current()-> nice;
-  intr_set_level(old_level);
   return cur_nice;
+  intr_set_level (old_level);
 }
 
 /* Returns 100 times the system load average. */
 int
 thread_get_load_avg (void) 
 {
-  enum intr_level old_level = intr_disable();
   int cur_load_avg = float_to_int_round(float_mult_mix(load_avg,100));
-  intr_set_level(old_level);
   return cur_load_avg;
 
 }
@@ -435,9 +435,7 @@ thread_get_load_avg (void)
 int
 thread_get_recent_cpu (void) 
 {
-  enum intr_level old_level = intr_disable();
   int cur_recent_cpu = float_to_int_round(float_mult_mix(thread_current()->recent_cpu,100));
-  intr_set_level(old_level);
   return cur_recent_cpu;
 }
 
@@ -536,7 +534,7 @@ init_thread (struct thread *t, const char *name, int priority)
 
   /* mlfqs */
   t->nice = 0;
-  t->recent_cpu = 0;
+  t->recent_cpu = int_to_float(0);
 
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);
@@ -754,7 +752,9 @@ void recent_cpu(struct thread *thread){
    //recent_cpu = (2 * load_avg) / (2 * load_avg + 1) * recent_cpu + nice;
    //using float point calculation
   if(thread != idle_thread){
-    thread->recent_cpu = float_add_mix(float_mult(float_div(float_mult_mix (load_avg, 2), float_add_mix(float_mult_mix(load_avg, 2), 1)), thread->recent_cpu),thread->nice);
+    thread->recent_cpu = float_add_mix(float_mult(float_div(float_mult_mix (load_avg, 2), 
+                  float_add_mix(float_mult_mix(load_avg, 2), 1))
+                  , thread->recent_cpu),thread->nice);
    }
    
 }
@@ -763,19 +763,21 @@ void calc_load_avg(){
    //using float point calculation
 
   if(thread_current() == idle_thread){
-    load_avg = float_add (float_mult (float_div (int_to_float (59), int_to_float (60)), load_avg),float_mult_mix (float_div (int_to_float (1), int_to_float (60)), list_size(&ready_list)));
-  }
+    load_avg = float_add (float_div_mix(float_mult_mix(load_avg, 59), 60),
+                float_div_mix(int_to_float(list_size(&ready_list)), 60));
+    }
   else{
-    load_avg = float_add (float_mult (float_div (int_to_float (59), int_to_float (60)), load_avg),float_mult_mix (float_div (int_to_float (1), int_to_float (60)), list_size(&ready_list) + 1));
-  }
+    load_avg = float_add (float_div_mix(float_mult_mix(load_avg, 59), 60),
+                float_div_mix(int_to_float(list_size(&ready_list) + 1), 60));
+    }
 
 }
 void calc_priority(struct thread *thread){
     //priority = PRI_MAX – (recent_cpu / 4) – (nice * 2);
     if(thread != idle_thread)
-      thread->priority = float_to_int (float_add_mix (float_div_mix (thread->recent_cpu, -4), PRI_MAX - thread->nice * 2));
+      thread->priority = float_to_int(float_sub(int_to_float(PRI_MAX), float_add_mix(float_div_mix(thread->recent_cpu, 4), thread->nice * 2)));
 
-}
+    }
 
 void recent_cpu_incr(){
    //recent cpu value ++;
