@@ -174,7 +174,23 @@ timer_interrupt (struct intr_frame *args UNUSED)
   ticks++;
   thread_tick ();
 
+  if(thread_mlfqs){
+    //if(thread_current()!=idle_thread){
+    //  recent_cpu_incr();
+    //}
+    if(ticks%4==0){
+      
+      if(ticks%100==0){
+        update_recent_cpu();
+        calc_load_avg();
+      }
+     update_priority();
+    }
+    recent_cpu_incr();
 
+  }
+
+  thread_wake(ticks); 
 
 }
 

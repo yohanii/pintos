@@ -149,17 +149,6 @@ thread_tick (void)
 
   thread_wake(timer_ticks()); //find thread_wake for 1 tick
 
-  if(thread_mlfqs){
-    if(thread_current()!= idle_thread)
-      recent_cpu_incr();
-    if(timer_ticks()%4==0){
-      if(timer_ticks()% 100 == 0){
-        update_recent_cpu();
-        calc_load_avg();
-      }
-      update_priority();  
-    }
-  }
 
   /* Enforce preemption. */
   if (++thread_ticks >= TIME_SLICE)
@@ -391,7 +380,10 @@ thread_set_priority (int new_priority)
 int
 thread_get_priority (void) 
 {
-  return thread_current ()->priority;
+  enum intr_level old_level = intr_disable();
+  int cur_priority = thread_current()->priority;
+  intr_set_level(old_level);
+  return cur_priority;
 }
 
 /* Sets the current thread's nice value to NICE. */
