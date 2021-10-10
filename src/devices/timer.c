@@ -172,26 +172,26 @@ static void
 timer_interrupt (struct intr_frame *args UNUSED)
 {
   ticks++;
-  thread_tick ();
+  thread_wake(ticks);
 
   if(thread_mlfqs){
     //if(thread_current()!=idle_thread){
     //  recent_cpu_incr();
     //}
-    if(ticks%4==0){
-      
-      if(ticks%100==0){
+       
+    if(timer_ticks()%TIMER_FREQ==0){
         update_recent_cpu();
         calc_load_avg();
-      }
+    }
+    if(timer_ticks()%4 == 0){
      update_priority();
     }
     recent_cpu_incr();
 
   }
 
-  thread_wake(ticks); 
-
+  
+  thread_tick();
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer

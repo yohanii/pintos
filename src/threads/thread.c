@@ -748,7 +748,7 @@ void recent_cpu(struct thread *thread){
   if(thread != idle_thread){
     thread->recent_cpu = float_add_mix(float_mult(float_div(float_mult_mix (load_avg, 2), float_add_mix(float_mult_mix(load_avg, 2), 1)), thread->recent_cpu),thread->nice);
    }
-   
+   return;
 }
 void calc_load_avg(){
    //load_avg = (59/60) * load_avg + (1/60) * ready_threads;
@@ -761,18 +761,25 @@ void calc_load_avg(){
     load_avg = float_add (float_mult (float_div (int_to_float (59), int_to_float (60)), load_avg),float_mult_mix (float_div (int_to_float (1), int_to_float (60)), list_size(&ready_list) + 1));
   }
 
+  if(load_avg<0){load_avg =0;}
+
 }
 void calc_priority(struct thread *thread){
     //priority = PRI_MAX – (recent_cpu / 4) – (nice * 2);
-    if(thread != idle_thread)
-      thread->priority = float_to_int (float_add_mix (float_div_mix (thread->recent_cpu, -4), PRI_MAX - thread->nice * 2));
-
+    if(thread != idle_thread){
+      int cur_priority  = float_to_int (float_add_mix (float_div_mix (thread->recent_cpu, -4), PRI_MAX - thread->nice * 2));
+      if(cur_priority<PRI_MIN) cur_priority = PRI_MIN;
+      if(cur_priority>PRI_MAX) cur_priority = PRI_MAX;
+      thread->priority = cur_priority;
+  }
+  return;
 }
 
 void recent_cpu_incr(){
    //recent cpu value ++;
     if (thread_current () != idle_thread)
         thread_current ()->recent_cpu = float_add_mix (thread_current ()->recent_cpu, 1);
+  return;
 } 
 void update_recent_cpu(void){
   struct list_elem *elem = list_begin(&all_list);
