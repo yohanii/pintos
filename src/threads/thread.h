@@ -99,6 +99,10 @@ struct thread
     struct list donations;
     struct list_elem donation_elem;
 
+    /* for mlfqs */
+    int nice;
+    int recent_cpu;
+
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 
@@ -161,5 +165,14 @@ void donate (void);
 void remove_in_donationlist (struct lock *lock);
 void refresh_priority (void);
 struct list* get_readylist(void);
+
+/* mlfqs */
+void recent_cpu(struct thread *thread);
+void calc_load_avg(void);
+void calc_priority(struct thread *thread);
+void recent_cpu_incr(void);
+void update_recent_cpu(void);
+void update_priority(void);
+
 
 #endif /* threads/thread.h */
