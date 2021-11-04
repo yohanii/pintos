@@ -54,17 +54,45 @@ start_process (void *file_name_)
   struct intr_frame if_;
   bool success;
 
+  char *save_fn;
+  char *argument_list[10];
+  char *saveptr;
+  char *token;
+  int count =0;
+
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
-  success = load (file_name, &if_.eip, &if_.esp);
+ 
+
+  //my code start
+  int len_fn = strlen(file_name);
+  memcpy(save_fn, file_name, len_fn+1);
+
+  token = strtok_r(save_fn, " ", &saveptr);
+  argument_list[count] = token;
+  count++;
+
+  while(token!=NULL){
+    token = strtok_r(NULL, " ", &saveptr);
+    argument_list[count] = token;
+    count++;
+  }
+  //my code end
+
+  success = load (argument_list[0], &if_.eip, &if_.esp);
+
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
   if (!success) 
     thread_exit ();
+
+  //my code start
+  argument_stack(argument_list, count, &if_);
+  //my code end
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
@@ -462,4 +490,9 @@ install_page (void *upage, void *kpage, bool writable)
      address, then map our page there. */
   return (pagedir_get_page (t->pagedir, upage) == NULL
           && pagedir_set_page (t->pagedir, upage, kpage, writable));
+}
+
+void argument_stack(char **parse, int count, void **esp)
+{
+
 }
