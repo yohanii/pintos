@@ -33,7 +33,7 @@ process_execute (const char *file_name)
 
   //parsing first
   char *token, *save_ptr;
-  token = strtok_r (s, " ", &save_ptr);
+  token = strtok_r (file_name, " ", &save_ptr);
 
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
@@ -43,10 +43,21 @@ process_execute (const char *file_name)
   strlcpy (fn_copy, file_name, PGSIZE);
 
   /* Create a new thread to execute FILE_NAME. */
+  //change file_name to token;
   tid = thread_create (token, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
+}
+
+void argument_stack(char **parse, int count, void **esp)
+{
+  int parse_count=0;
+  unsigned int argv_address;
+  unsigned int address[count];
+  int i,j;
+
+
 }
 
 /* A thread function that loads a user process and starts it
@@ -496,7 +507,3 @@ install_page (void *upage, void *kpage, bool writable)
           && pagedir_set_page (t->pagedir, upage, kpage, writable));
 }
 
-void argument_stack(char **parse, int count, void **esp)
-{
-
-}
