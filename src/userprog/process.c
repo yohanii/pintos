@@ -30,6 +30,8 @@ process_execute (const char *file_name)
 {
   char *fn_copy;
   tid_t tid;
+  char *saveptr;
+  char *token;
 
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
@@ -38,8 +40,11 @@ process_execute (const char *file_name)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
 
+  token = strtok_r(file_name, " ", &saveptr);  
+  printf("\n1111111111111\n");
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+  tid = thread_create (token, PRI_DEFAULT, start_process, fn_copy);
+  printf("\n2222222222222\n");
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
@@ -59,7 +64,9 @@ start_process (void *file_name_)
   char *saveptr;
   char *token;
   int count =0;
-
+  
+  printf("\n33333333333333333\n");
+  
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
@@ -83,15 +90,22 @@ start_process (void *file_name_)
   //my code end
 
   success = load (argument_list[0], &if_.eip, &if_.esp);
-
+  
+  for(int i=0;i<count;i++){
+    printf("%s\n",argument_list[i]);
+  }
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
   if (!success) 
     thread_exit ();
-
+  
+  printf("\n44444444444444\n");
   //my code start
-  argument_stack(argument_list, count, &if_);
+  argument_stack(argument_list, count, &if_.esp);
+  printf("\n55555555555555\n");
+  //if_->edi = count;
+  //if_->esi = &if_->esp +8;
   //my code end
 
   /* Start the user process by simulating a return from an
@@ -114,8 +128,10 @@ start_process (void *file_name_)
    This function will be implemented in problem 2-2.  For now, it
    does nothing. */
 int
-process_wait (tid_t child_tid UNUSED) 
+process_wait (tid_t child_tid) 
 {
+  int i;
+  for(i=0;i<1000000000;i++);
   return -1;
 }
 
@@ -494,5 +510,39 @@ install_page (void *upage, void *kpage, bool writable)
 
 void argument_stack(char **parse, int count, void **esp)
 {
+  char *argu_address[128];
+  int total = 0;
 
+  for(int i=count-1; i>=0;i--){
+    int argv_len = strlen(parse[i]);
+    *esp -= argv_len+1;
+    total += argv_len+1;
+    memcpy(*esp, parse[i],argv_len+1);
+    argu_address[i] = *esp;
+  }  
+  
+  //while((uint32_t)*esp%4!=0){
+  //  *esp--;
+  //  **(uint32_t **)(esp) = 0;
+  //}
+
+  *esp -= total%4 != 0 ? 4-(total%4) : 0;
+
+  for(int i = count;i>=0;i--){
+    *esp = *esp - 4;
+    if(i==count){
+      memset(*esp,0,sizeof(char**));
+    }else{
+      memcpy(*esp, &argu_address[i],sizeof(char**));
+    }
+  }
+
+  *esp -=4;
+  **(uint32_t **)esp = *esp +4;
+
+  *esp -=4;
+  **(uint32_t **)esp = count;
+
+  *esp -=4;
+  **(uint32_t **)esp = 0;
 }
