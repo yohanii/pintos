@@ -16,24 +16,23 @@ syscall_init (void)
 static void
 syscall_handler (struct intr_frame *f) 
 {
-  int syscall_num;
+  int syscall;
   int arg[5];
   void *esp = f->esp;
 
-
-  if(esp >= LOW_ADDR && esp < HIGH_ADDR){
-    syscall_num = *(int *)esp;
+  if(esp > LOW_ADDR && esp < HIGH_ADDR){
+    syscall = *(int *)esp;
 	}
 	else{
 		exit(-1);
 	}
 
 
-  switch (syscall_num) {
+  switch (syscall) {
     case SYS_HALT:
       break;
     case SYS_EXIT:
-		  get_argument(esp,arg,1);
+		  get_argument(esp, arg, 1);
 		  exit(arg[0]);
       break;
     case SYS_EXEC:
@@ -66,16 +65,14 @@ syscall_handler (struct intr_frame *f)
   //thread_exit ();
 }
 
-/* get_argument function */
-void
-get_argument(void *esp, int *arg, int count)
+void get_argument(void *esp, int *arg, int count)
 {
 	void *sp = esp + 4;
 	if(count <= 0){
     return;
   }
 	for(int i=0; i<count; i++){
-	  if(sp >= LOW_ADDR && sp <= HIGH_ADDR){
+	  if(sp > LOW_ADDR && sp < HIGH_ADDR){
 			arg[i] = *(int *)sp;
 			sp = sp + 4;
 	  }
