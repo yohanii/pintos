@@ -20,24 +20,27 @@ syscall_handler (struct intr_frame *f)
   int arg[5];
   void *esp = f->esp;
 
-  if(esp > LOW_ADDR && esp < HIGH_ADDR){
-    syscall = *(int *)esp;
-	}
-	else{
-		exit(-1);
-	}
-
+  if(esp>LOW_ADDR && esp < HIGH_ADDR){
+    syscall = *(uint32_t *)esp;
+  }else{
+    exit(-1);
+  }
 
   switch (syscall) {
     case SYS_HALT:
+      halt();
       break;
     case SYS_EXIT:
-		  get_argument(esp, arg, 1);
-		  exit(arg[0]);
+      get_argument(esp, arg, 1, 0);
+      exit(arg[0]);
       break;
     case SYS_EXEC:
+      get_argument(esp, arg, 1, 0);
+      exit((const char *)arg[0]);
       break;
     case SYS_WAIT:
+      get_argument(esp, arg, 1, 0);
+      wait((pid_t)arg[0]);
       break;
     case SYS_CREATE:
       break;
@@ -48,9 +51,12 @@ syscall_handler (struct intr_frame *f)
     case SYS_FILESIZE:
       break;
     case SYS_READ:
+      get_argument(esp, arg, 3, 16);
+      read((int)(arg[0]), (void*)(arg[1]), (unsigned)(arg[2]));
       break;
     case SYS_WRITE:
-      write((int)*(uint32_t*)(f->esp+20), (void*)*(uint32_t*)(f->esp+24), (unsigned)*((uint32_t*)(f->esp+28)));
+      get_argument(esp, arg, 3, 16);
+      write((int)(arg[0]), (void*)(arg[1]), (unsigned)(arg[2]));
       break;
     case SYS_SEEK:
       break;
@@ -65,22 +71,21 @@ syscall_handler (struct intr_frame *f)
   //thread_exit ();
 }
 
-void get_argument(void *esp, int *arg, int count)
+void get_argument(void *esp, int *arg, int count, int add)
 {
-	void *sp = esp + 4;
-	if(count <= 0){
+  void *sp = esp + 4+ add;
+  if(count <= 0){
     return;
   }
-	for(int i=0; i<count; i++){
-	  if(sp > LOW_ADDR && sp < HIGH_ADDR){
-			arg[i] = *(int *)sp;
-			sp = sp + 4;
-	  }
-	  else{
-		  exit(-1);
-	  }
-	}
-
+  for(int i=0; i<count; i++){
+    if(sp>LOW_ADDR && sp < HIGH_ADDR){
+      arg[i] = *(int *)sp;
+      sp = sp + 4;
+    }
+    else{
+      exit(-1);
+    }
+  }
 }
 
 void exit(int status){
@@ -101,11 +106,11 @@ void halt(void){
   shutdown_power_off();
 }
 
-pid_t exec(const char *cmd_lime){
-
+pid_t exec(const char *cmd_line){
+  return process_execute(cmd_line);
 }
 int wait(pid_t pid){
-
+  return process_wait(pid);
 }
 bool create(const char *file, unsigned initial_size){
 
@@ -120,7 +125,15 @@ int filesize(int fd){
 
 }
 int read(int fd, void *buffer, unsigned size){
-
+  int i;
+  if(fd ==0){
+    for(i=0;i<size;i++){
+      if(((char*)buffer)[i] == '\0'){
+        break;
+      }
+    }
+  }
+  return i;
 }
 
 void seek(int fd, unsigned position){

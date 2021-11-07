@@ -16,5 +16,5 @@ int write(int fd, const void *buffer, unsigned size);
 void seek(int fd, unsigned position);
 unsigned tell(int fd);
 void close(int fd);
-void get_argument(void *esp, int *arg, int count);
+void get_argument(void *esp, int *arg, int count, int add);
 #endif /* userprog/syscall.h */
