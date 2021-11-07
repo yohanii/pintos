@@ -60,7 +60,7 @@ start_process (void *file_name_)
   bool success;
 
   char *save_fn = (char*)malloc(sizeof(file_name));
-  char *argument_list[10];
+  char *argument_list[64];
   char *saveptr;
   char *token;
   int count =0;
@@ -99,6 +99,7 @@ start_process (void *file_name_)
     printf("\nargument_list[%d] : %s\n", count, argument_list[count]);
     count++;
   }
+  count--;
   //my code end
   printf("\n777777777777777\n");
 
@@ -115,6 +116,7 @@ start_process (void *file_name_)
   printf("\n55555555555555\n");
   //my code start
   argument_stack(argument_list, count, &if_.esp);
+  //hex_dump(if_.esp, if_.esp, PHYS_BASE - if_.esp, true);
   printf("\n66666666666666\n");
   //if_->edi = count;
   //if_->esi = &if_->esp +8;
@@ -520,20 +522,20 @@ void argument_stack(char **parse, int count, void **esp)
   char *argu_address[128];
 
   int total = 0;
-  //printf("\n check kernel-panic in argument stack 1, count : %d \n", count);
-  for(int i = count - 2; i >= 0;i--){
-    //printf("\n check kernel-panic in argument stack 1 - %d \n", i);
+  printf("\n check kernel-panic in argument stack 1, count : %d \n", count);
+  for(int i = count - 1; i >= 0;i--){
+    printf("\n check kernel-panic in argument stack 1 - %d \n", i);
     //char * tmp = parse[i];
-    int argv_len = strlen(&parse[i]);
+    int argv_len = strlen(parse[i]);
     printf("\n check kernel-panic in argument stack 1 - %s %d %d\n",parse[i], i, argv_len);
     *esp -= argv_len+1;
-    //printf("\n check kernel-panic in argument stack 1 - %d \n", i);
+    printf("\n check kernel-panic in argument stack 1 - %d \n", i);
     total += argv_len+1;
-    //printf("\n check kernel-panic in argument stack 1 - %d \n", i);
+    printf("\n check kernel-panic in argument stack 1 - %d \n", i);
     strlcpy(*esp, parse[i],argv_len+1); // TODO:: solve
-    //printf("\n check kernel-panic in argument stack 1 - %d \n", i);
+    printf("\n check kernel-panic in argument stack 1 - %d \n", i);
     argu_address[i] = *esp;
-    //printf("\n check kernel-panic in argument stack 1 - %d \n", i);
+    printf("\n check kernel-panic in argument stack 1 - %d \n", i);
     //printf("%s\n",argu_address[i]);
     //printf("\n check kernel-panic in argument stack 1 - %d \n", i);
   }  
@@ -562,5 +564,7 @@ void argument_stack(char **parse, int count, void **esp)
 
   *esp -=4;
   **(uint32_t **)esp = 0;
+
+  hex_dump(*esp, *esp, 100,1);
     //printf("\n check kernel-panic in argument stack 4 \n");
 }
