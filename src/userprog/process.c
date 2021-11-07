@@ -72,44 +72,50 @@ start_process (void *file_name_)
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
- 
-  //printf("\n888888888888888\n");
+  
+  printf("\nfile_name : %s\n",file_name); 
+  printf("\n888888888888888\n");
   //my code start
   int i;
   int len_fn = strlen(file_name);
   strlcpy(save_fn, file_name, len_fn+1);
-  for(i=0;save_fn[i]!='\n'&&save_fn[i]!=' ';i++);
-  save_fn[i] = '\n';
+  printf("\nsave_fn : %s\n",save_fn);
+  //for(i=0;save_fn[i]!='\n'&&save_fn[i]!=' ';i++);
+  //save_fn[i] = '\0';
+  printf("\nsave_fn : %s\n",save_fn);
   
-  //printf("\n999999999999999\n");
+  printf("\n999999999999999\n");
 
   token = strtok_r(save_fn, " ", &saveptr);
   argument_list[count] = token;
+  printf("\nargument_list[%d] : %s\n", count, argument_list[count]);
   count++;
 
-  //printf("\n00000000000000\n");
+  printf("\n00000000000000\n");
 
   while(token!=NULL){
     token = strtok_r(NULL, " ", &saveptr);
-    argument_list[count] = token;
+    argument_list[count] = token;    
+    printf("\nargument_list[%d] : %s\n", count, argument_list[count]);
     count++;
   }
   //my code end
-  //printf("\n777777777777777\n");
+  printf("\n777777777777777\n");
 
   success = load (argument_list[0], &if_.eip, &if_.esp);
   
-  //printf("\n44444444444444\n");  
+  printf("\n44444444444444\n");  
+  //printf("\n%s\n", success);
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
   if (!success) 
     thread_exit ();
   
-  //printf("\n55555555555555\n");
+  printf("\n55555555555555\n");
   //my code start
   argument_stack(argument_list, count, &if_.esp);
-  //printf("\n66666666666666\n");
+  printf("\n66666666666666\n");
   //if_->edi = count;
   //if_->esi = &if_->esp +8;
   //my code end
