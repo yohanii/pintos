@@ -30,6 +30,8 @@ process_execute (const char *file_name)
 {
   char *fn_copy;
   tid_t tid;
+  char *saveptr;
+  char *token;
 
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
@@ -38,8 +40,11 @@ process_execute (const char *file_name)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
 
+  token = strtok_r(file_name, " ", &saveptr);  
+  //printf("\n1111111111111\n");
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+  tid = thread_create (token, PRI_DEFAULT, start_process, fn_copy);
+  //printf("\n2222222222222\n");
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
@@ -54,17 +59,60 @@ start_process (void *file_name_)
   struct intr_frame if_;
   bool success;
 
+  char *save_fn = (char*)malloc(sizeof(file_name));
+  char *argument_list[10];
+  char *saveptr;
+  char *token;
+  int count =0;
+  
+  //printf("\n33333333333333333\n");
+  
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
-  success = load (file_name, &if_.eip, &if_.esp);
+ 
+  //printf("\n888888888888888\n");
+  //my code start
+  int i;
+  int len_fn = strlen(file_name);
+  strlcpy(save_fn, file_name, len_fn+1);
+  for(i=0;save_fn[i]!='\n'&&save_fn[i]!=' ';i++);
+  save_fn[i] = '\n';
+  
+  //printf("\n999999999999999\n");
+
+  token = strtok_r(save_fn, " ", &saveptr);
+  argument_list[count] = token;
+  count++;
+
+  //printf("\n00000000000000\n");
+
+  while(token!=NULL){
+    token = strtok_r(NULL, " ", &saveptr);
+    argument_list[count] = token;
+    count++;
+  }
+  //my code end
+  //printf("\n777777777777777\n");
+
+  success = load (argument_list[0], &if_.eip, &if_.esp);
+  
+  //printf("\n44444444444444\n");  
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
   if (!success) 
     thread_exit ();
+  
+  //printf("\n55555555555555\n");
+  //my code start
+  argument_stack(argument_list, count, &if_.esp);
+  //printf("\n66666666666666\n");
+  //if_->edi = count;
+  //if_->esi = &if_->esp +8;
+  //my code end
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
@@ -82,12 +130,13 @@ start_process (void *file_name_)
    child of the calling process, or if process_wait() has already
    been successfully called for the given TID, returns -1
    immediately, without waiting.
-
    This function will be implemented in problem 2-2.  For now, it
    does nothing. */
 int
-process_wait (tid_t child_tid UNUSED) 
+process_wait (tid_t child_tid) 
 {
+  int i;
+  for(i=0;i<1000000000;i++);
   return -1;
 }
 
@@ -368,15 +417,11 @@ validate_segment (const struct Elf32_Phdr *phdr, struct file *file)
 /* Loads a segment starting at offset OFS in FILE at address
    UPAGE.  In total, READ_BYTES + ZERO_BYTES bytes of virtual
    memory are initialized, as follows:
-
         - READ_BYTES bytes at UPAGE must be read from FILE
           starting at offset OFS.
-
         - ZERO_BYTES bytes at UPAGE + READ_BYTES must be zeroed.
-
    The pages initialized by this function must be writable by the
    user process if WRITABLE is true, read-only otherwise.
-
    Return true if successful, false if a memory allocation error
    or disk read error occurs. */
 static bool
@@ -462,4 +507,54 @@ install_page (void *upage, void *kpage, bool writable)
      address, then map our page there. */
   return (pagedir_get_page (t->pagedir, upage) == NULL
           && pagedir_set_page (t->pagedir, upage, kpage, writable));
+}
+
+void argument_stack(char **parse, int count, void **esp)
+{
+  char *argu_address[128];
+
+  int total = 0;
+  //printf("\n check kernel-panic in argument stack 1, count : %d \n", count);
+  for(int i = count - 2; i >= 0;i--){
+    //printf("\n check kernel-panic in argument stack 1 - %d \n", i);
+    //char * tmp = parse[i];
+    int argv_len = strlen(&parse[i]);
+    printf("\n check kernel-panic in argument stack 1 - %s %d %d\n",parse[i], i, argv_len);
+    *esp -= argv_len+1;
+    //printf("\n check kernel-panic in argument stack 1 - %d \n", i);
+    total += argv_len+1;
+    //printf("\n check kernel-panic in argument stack 1 - %d \n", i);
+    strlcpy(*esp, parse[i],argv_len+1); // TODO:: solve
+    //printf("\n check kernel-panic in argument stack 1 - %d \n", i);
+    argu_address[i] = *esp;
+    //printf("\n check kernel-panic in argument stack 1 - %d \n", i);
+    //printf("%s\n",argu_address[i]);
+    //printf("\n check kernel-panic in argument stack 1 - %d \n", i);
+  }  
+  //printf("\n check kernel-panic in argument stack 2 \n");
+  //while((uint32_t)*esp%4!=0){
+  //  *esp--;
+  //  **(uint32_t **)(esp) = 0;
+  //}
+
+  *esp -= total%4 != 0 ? 4-(total%4) : 0;
+
+  for(int i = count;i>=0;i--){
+    *esp = *esp - 4;
+    if(i==count){
+      memset(*esp,0,sizeof(char**));
+    }else{
+      memcpy(*esp, &argu_address[i], sizeof(char**));
+    }
+  }
+  //printf("\n check kernel-panic in argument stack 3 \n");
+  *esp -=4;
+  **(uint32_t **)esp = *esp +4;
+
+  *esp -=4;
+  **(uint32_t **)esp = count;
+
+  *esp -=4;
+  **(uint32_t **)esp = 0;
+    //printf("\n check kernel-panic in argument stack 4 \n");
 }
