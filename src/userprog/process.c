@@ -59,7 +59,7 @@ start_process (void *file_name_)
   struct intr_frame if_;
   bool success;
 
-  char *save_fn;
+  char *save_fn = (char*)malloc(sizeof(file_name));
   char *argument_list[10];
   char *saveptr;
   char *token;
@@ -73,14 +73,21 @@ start_process (void *file_name_)
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
  
-
+  printf("\n888888888888888\n");
   //my code start
+  int i;
   int len_fn = strlen(file_name);
-  memcpy(save_fn, file_name, len_fn+1);
+  strlcpy(save_fn, file_name, len_fn+1);
+  for(i=0;save_fn[i]!='\n'&&save_fn[i]!=' ';i++);
+  save_fn[i] = '\n';
+  
+  printf("\n999999999999999\n");
 
   token = strtok_r(save_fn, " ", &saveptr);
   argument_list[count] = token;
   count++;
+
+  printf("\n00000000000000\n");
 
   while(token!=NULL){
     token = strtok_r(NULL, " ", &saveptr);
@@ -88,22 +95,21 @@ start_process (void *file_name_)
     count++;
   }
   //my code end
+  printf("\n777777777777777\n");
 
   success = load (argument_list[0], &if_.eip, &if_.esp);
   
-  for(int i=0;i<count;i++){
-    printf("%s\n",argument_list[i]);
-  }
+  printf("\n44444444444444\n");  
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
   if (!success) 
     thread_exit ();
   
-  printf("\n44444444444444\n");
+  printf("\n55555555555555\n");
   //my code start
   argument_stack(argument_list, count, &if_.esp);
-  printf("\n55555555555555\n");
+  printf("\n66666666666666\n");
   //if_->edi = count;
   //if_->esi = &if_->esp +8;
   //my code end
@@ -519,6 +525,7 @@ void argument_stack(char **parse, int count, void **esp)
     total += argv_len+1;
     memcpy(*esp, parse[i],argv_len+1);
     argu_address[i] = *esp;
+    printf("%s\n",argu_address[i]);
   }  
   
   //while((uint32_t)*esp%4!=0){
