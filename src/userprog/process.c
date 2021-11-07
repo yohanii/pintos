@@ -59,14 +59,44 @@ start_process (void *file_name_)
   struct intr_frame if_;
   bool success;
 
-  char *save_fn = (char*)malloc(sizeof(file_name));
+  /* char *save_fn = (char*)malloc(sizeof(file_name));
   char *argument_list[10];
   char *saveptr;
   char *token;
-  int count =0;
-  
+  int count =0;*/
+
+  char *fn_copy=NULL;
+  char **parse=NULL;
+  char *token;
+  char *save_ptr;
+  int count=0;
+  int i;
+
   //printf("\n33333333333333333\n");
+
+  fn_copy = palloc_get_page(0);
+  if(fn_copy == NULL)
+    thread_exit ();
+
+  strlcpy (fn_copy, file_name, PGSIZE);
   
+  parse = palloc_get_page(0);
+  if(parse==NULL)
+    thread_exit();
+  token=strtok_r(fn_copy," ",&save_ptr);
+  while(token!=NULL){
+    parse[count]=palloc_get_page(0);
+	  if(parse[count]==NULL)
+    	thread_exit ();
+	  strlcpy(parse[count],token,PGSIZE);
+	  count++;
+    token=strtok_r(NULL," ",&save_ptr);
+  }
+  /* printf("%d\n", count);
+  for(int j = count - 1; j >= 0; j--){
+    printf("\n %d - %s\n",j, parse[i]);
+  }*/
+  //printf("\n444444444444444444\n");
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
@@ -74,7 +104,7 @@ start_process (void *file_name_)
   if_.eflags = FLAG_IF | FLAG_MBS;
  
   //printf("\n888888888888888\n");
-  //my code start
+  /*  //my code start
   int i;
   int len_fn = strlen(file_name);
   strlcpy(save_fn, file_name, len_fn+1);
@@ -95,10 +125,10 @@ start_process (void *file_name_)
     count++;
   }
   //my code end
-  //printf("\n777777777777777\n");
+  //printf("\n777777777777777\n");*/
 
-  success = load (argument_list[0], &if_.eip, &if_.esp);
-  
+  success = load (parse[0], &if_.eip, &if_.esp);
+
   //printf("\n44444444444444\n");  
 
   /* If load failed, quit. */
@@ -108,12 +138,15 @@ start_process (void *file_name_)
   
   //printf("\n55555555555555\n");
   //my code start
-  argument_stack(argument_list, count, &if_.esp);
+  argument_stack(parse, count, &if_.esp);
   //printf("\n66666666666666\n");
   //if_->edi = count;
   //if_->esi = &if_->esp +8;
   //my code end
-
+  for(i=0;i<count;i++)
+ 	 palloc_free_page(parse[count]);
+  palloc_free_page(parse);
+  palloc_free_page(fn_copy);
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
      threads/intr-stubs.S).  Because intr_exit takes all of its
@@ -511,15 +544,16 @@ install_page (void *upage, void *kpage, bool writable)
 
 void argument_stack(char **parse, int count, void **esp)
 {
+
   char *argu_address[128];
 
   int total = 0;
   //printf("\n check kernel-panic in argument stack 1, count : %d \n", count);
-  for(int i = count - 2; i >= 0;i--){
+  for(int i = count - 1; i >= 0;i--){
     //printf("\n check kernel-panic in argument stack 1 - %d \n", i);
     //char * tmp = parse[i];
-    int argv_len = strlen(&parse[i]);
-    printf("\n check kernel-panic in argument stack 1 - %s %d %d\n",parse[i], i, argv_len);
+    int argv_len = strlen(parse[i]);
+    //printf("\n check kernel-panic in argument stack 1 - %s %d %d\n",parse[i], i, argv_len);
     *esp -= argv_len+1;
     //printf("\n check kernel-panic in argument stack 1 - %d \n", i);
     total += argv_len+1;

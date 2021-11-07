@@ -172,7 +172,7 @@ thread_create (const char *name, int priority,
   struct switch_threads_frame *sf;
   tid_t tid;
 
-
+  //printf("start thread_create and args %s, %d \n", name, priority);
   ASSERT (function != NULL);
 
   /* Allocate thread. */
@@ -201,7 +201,7 @@ thread_create (const char *name, int priority,
 
   /* Add to run queue. */
   thread_unblock (t);
-
+  //printf("finisehd thread_create and args %s, %d \n", name, priority);
   return tid;
 }
 
