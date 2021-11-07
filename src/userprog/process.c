@@ -92,10 +92,10 @@ start_process (void *file_name_)
 	  count++;
     token=strtok_r(NULL," ",&save_ptr);
   }
-  /* printf("%d\n", count);
+   printf("%d\n", count);
   for(int j = count - 1; j >= 0; j--){
-    printf("\n %d - %s\n",j, parse[i]);
-  }*/
+    printf("%d - %s\n",j, parse[j]);
+  }
   //printf("\n444444444444444444\n");
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
@@ -139,6 +139,7 @@ start_process (void *file_name_)
   //printf("\n55555555555555\n");
   //my code start
   argument_stack(parse, count, &if_.esp);
+    hex_dump(if_.esp , if_.esp , PHYS_BASE - if_.esp , true);
   //printf("\n66666666666666\n");
   //if_->edi = count;
   //if_->esi = &if_->esp +8;
