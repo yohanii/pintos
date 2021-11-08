@@ -3,8 +3,15 @@
 #include <syscall-nr.h>
 #include "threads/interrupt.h"
 #include "threads/thread.h"
+#include "filesys/filesys.h"
+#include "filesys/file.h"
+#include "filesys/fsutil.h"
+#include "devices/shutdown.h"
+
+
 #define HIGH_ADDR 0xc0000000
 #define LOW_ADDR 0x8048000
+
 static void syscall_handler (struct intr_frame *);
 
 void
@@ -32,7 +39,7 @@ syscall_handler (struct intr_frame *f)
       break;
     case SYS_EXIT:
       get_argument(esp, arg, 1, 0);
-      exit(arg[0]);
+      exit((const char *)arg[0]);
       break;
     case SYS_EXEC:
       get_argument(esp, arg, 1, 0);
@@ -43,10 +50,25 @@ syscall_handler (struct intr_frame *f)
       f->eax = wait((pid_t)arg[0]);
       break;
     case SYS_CREATE:
+    	get_argument(esp, arg, 2, 0);
+      if (arg[0] == NULL){
+        exit(-1);
+      }
+		  f->eax = create((const char *)arg[0],(unsigned)arg[1]);
       break;
     case SYS_REMOVE:
+    	get_argument(esp, arg, 1, 0);
+      if(arg[0] == NULL){
+        exit(-1);
+      }
+		  f->eax=remove((const char *)arg[0]);
       break;
     case SYS_OPEN:
+    	get_argument(esp, arg, 1, 0);
+      if(arg[0] == NULL){
+        exit(-1);
+      }
+		  f->eax = open((const char *)arg[0]);
       break;
     case SYS_FILESIZE:
       break;
@@ -114,12 +136,15 @@ int wait(pid_t pid){
   return process_wait(pid);
 }
 bool create(const char *file, unsigned initial_size){
-
+  return filesys_create(file, initial_size);
 }
 bool remove(const char *file){
-
+  return filesys_remove(file);
 }
 int open(const char *file){
+  if(filesys_open(file) == NULL){
+    return -1;
+  }
 
 }
 int filesize(int fd){
@@ -144,5 +169,6 @@ unsigned tell(int fd){
 
 }
 void close(int fd){
-  
+
+
 }
