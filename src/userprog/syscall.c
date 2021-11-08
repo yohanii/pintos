@@ -7,6 +7,8 @@
 #include "filesys/file.h"
 #include "filesys/fsutil.h"
 #include "devices/shutdown.h"
+#include "process.h"
+
 
 
 #define HIGH_ADDR 0xc0000000
@@ -39,7 +41,7 @@ syscall_handler (struct intr_frame *f)
       break;
     case SYS_EXIT:
       get_argument(esp, arg, 1, 0);
-      exit((const char *)arg[0]);
+      exit((int)arg[0]);
       break;
     case SYS_EXEC:
       get_argument(esp, arg, 1, 0);
@@ -61,7 +63,7 @@ syscall_handler (struct intr_frame *f)
       if(arg[0] == NULL){
         exit(-1);
       }
-		  f->eax=remove((const char *)arg[0]);
+		  f->eax = remove((const char *)arg[0]);
       break;
     case SYS_OPEN:
     	get_argument(esp, arg, 1, 0);
@@ -71,6 +73,8 @@ syscall_handler (struct intr_frame *f)
 		  f->eax = open((const char *)arg[0]);
       break;
     case SYS_FILESIZE:
+		  get_argument(esp, arg, 1, 0);
+		  f->eax = filesize((int)arg[0]);
       break;
     case SYS_READ:
       get_argument(esp, arg, 3, 16);
@@ -78,13 +82,19 @@ syscall_handler (struct intr_frame *f)
       break;
     case SYS_WRITE:
       get_argument(esp, arg, 3, 16);
-      write((int)(arg[0]), (void*)(arg[1]), (unsigned)(arg[2]));
+      f->eax = write((int)(arg[0]), (void*)(arg[1]), (unsigned)(arg[2]));
       break;
     case SYS_SEEK:
+		  get_argument(esp, arg, 2, 0);
+		  seek(arg[0],(unsigned)arg[1]);
       break;
     case SYS_TELL:
+		  get_argument(esp, arg, 1, 0);
+		  f->eax = tell((int)arg[0]);
       break;
     case SYS_CLOSE:
+		  get_argument(esp, arg, 1, 0);
+		  close((int)arg[0]);
       break;
 
   }   
@@ -95,7 +105,7 @@ syscall_handler (struct intr_frame *f)
 
 void get_argument(void *esp, int *arg, int count, int add)
 {
-  void *sp = esp + 4+ add;
+  void *sp = esp + 4 + add;
   if(count <= 0){
     return;
   }
@@ -142,13 +152,12 @@ bool remove(const char *file){
   return filesys_remove(file);
 }
 int open(const char *file){
-  if(filesys_open(file) == NULL){
-    return -1;
-  }
-
+	struct file *open = filesys_open(file);
+  return (open == NULL)? -1 : process_add_file(open);
 }
 int filesize(int fd){
-
+  struct file *file = process_get_file(fd);
+  return (file == NULL)? -1 : file_length(file);
 }
 int read(int fd, void *buffer, unsigned size){
   int i;
@@ -163,12 +172,11 @@ int read(int fd, void *buffer, unsigned size){
 }
 
 void seek(int fd, unsigned position){
-
+  file_seek(process_get_file(fd), position);
 }
 unsigned tell(int fd){
-
+  file_tell(process_get_file(fd));
 }
 void close(int fd){
-
-
+  process_close_file(fd);
 }

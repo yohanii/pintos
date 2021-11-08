@@ -199,6 +199,12 @@ thread_create (const char *name, int priority,
   sf->eip = switch_entry;
   sf->ebp = 0;
 
+  /* file descriptor */
+  t->file_descriptor_table = palloc_get_page(0);
+  if(t->file_descriptor_table == NULL)
+	  return TID_ERROR; 
+  t->fd_value = 2;
+
   /* Add to run queue. */
   thread_unblock (t);
   //printf("finisehd thread_create and args %s, %d \n", name, priority);

@@ -18,6 +18,7 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 
+
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 
@@ -199,6 +200,10 @@ process_exit (void)
   struct thread *cur = thread_current ();
   uint32_t *pd;
   enum intr_level old_level;
+
+/* 프로세스에열린모든파일을닫음*/
+/* 파일디스크립터테이블의최대값을이용해파일디스크립터의최소값인2가될때까지파일을닫음*/
+/* 파일디스크립터테이블메모리해제*/
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
@@ -616,4 +621,31 @@ void argument_stack(char **parse, int count, void **esp)
   *esp -=4;
   **(uint32_t **)esp = 0;
     //printf("\n check kernel-panic in argument stack 4 \n");
+}
+int process_add_file(struct file *f){
+  
+	struct file **file_descriptor_table = NULL;
+	int fd_value;
+
+	fd_value = thread_current()->fd_value;
+	file_descriptor_table = thread_current()->file_descriptor_table;
+  if(file_descriptor_table == NULL) return -1;
+
+	file_descriptor_table[fd_value] = f;
+	thread_current()->fd_value = thread_current()->fd_value + 1;
+  return fd_value;
+}
+
+struct file *process_get_file(int fd){
+  return (thread_current()->fd_value < fd)? NULL: 
+          thread_current()->file_descriptor_table[fd];
+}
+
+void process_close_file(int fd){
+  if(thread_current()->fd_value < fd) return;
+  struct file *close = process_get_file(fd);
+  if(close == NULL) return;
+  file_close(close);
+  thread_current()->file_descriptor_table[fd] = NULL;
+  return;
 }

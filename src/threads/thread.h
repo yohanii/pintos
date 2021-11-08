@@ -95,6 +95,8 @@ struct thread
     struct list_elem elem;              /* List element. */
 
 #ifdef USERPROG
+    struct file **file_descriptor_table;
+    int fd_value;
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
     //my code
@@ -103,6 +105,7 @@ struct thread
     struct list_elem child_elem;
     int thread_status;
 #endif
+
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
