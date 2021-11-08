@@ -36,11 +36,11 @@ syscall_handler (struct intr_frame *f)
       break;
     case SYS_EXEC:
       get_argument(esp, arg, 1, 0);
-      exit((const char *)arg[0]);
+      f->eax = exec((const char *)arg[0]);
       break;
     case SYS_WAIT:
       get_argument(esp, arg, 1, 0);
-      wait((pid_t)arg[0]);
+      f->eax = wait((pid_t)arg[0]);
       break;
     case SYS_CREATE:
       break;
@@ -52,7 +52,7 @@ syscall_handler (struct intr_frame *f)
       break;
     case SYS_READ:
       get_argument(esp, arg, 3, 16);
-      read((int)(arg[0]), (void*)(arg[1]), (unsigned)(arg[2]));
+      f->eax = read((int)(arg[0]), (void*)(arg[1]), (unsigned)(arg[2]));
       break;
     case SYS_WRITE:
       get_argument(esp, arg, 3, 16);
@@ -91,6 +91,7 @@ void get_argument(void *esp, int *arg, int count, int add)
 void exit(int status){
 
   printf("%s: exit(%d)\n", thread_name(), status);
+  thread_current() -> thread_status = status;
   thread_exit();
 }
 

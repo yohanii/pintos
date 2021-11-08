@@ -40,7 +40,11 @@ process_execute (const char *file_name)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
 
-  token = strtok_r(file_name, " ", &saveptr);  
+  token = strtok_r(file_name, " ", &saveptr);
+
+  if(filesys_open(token)==NULL){
+    return -1;
+  }  
   //printf("\n1111111111111\n");
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (token, PRI_DEFAULT, start_process, fn_copy);
@@ -169,8 +173,22 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid) 
 {
-  int i;
-  for(i=0;i<1000000000;i++);
+  struct list child_list = thread_current()->child_list;
+  struct list_elem* elem = list_begin(&child_list);
+  struct thread* thread = NULL;
+  int status;
+
+  while(elem != list_end(&child_list)){
+    thread = list_entry(elem, struct thread, child_elem);
+    if(thread->tid == child_tid){
+      sema_down(&(thread->child_lock));
+      status = thread-> thread_status;
+      thread_unblock(thread);
+      list_remove(&(thread->child_elem));
+      return status;
+    }
+    elem = list_next(elem);
+  }
   return -1;
 }
 
@@ -180,6 +198,7 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
+  enum intr_level old_level;
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
@@ -197,6 +216,11 @@ process_exit (void)
       pagedir_activate (NULL);
       pagedir_destroy (pd);
     }
+  sema_up(&(cur->child_lock));
+  
+  old_level = intr_disable();
+  thread_block();
+  intr_set_level(old_level);
 }
 
 /* Sets up the CPU for running user code in the current
