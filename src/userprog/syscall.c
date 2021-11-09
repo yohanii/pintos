@@ -8,6 +8,8 @@
 #include "filesys/fsutil.h"
 #include "devices/shutdown.h"
 #include "process.h"
+#include "lib/kernel/list.h"
+
 
 
 
@@ -128,11 +130,18 @@ void exit(int status){
 }
 
 int write(int fd, const void *buffer, unsigned size){
+  int i;
   if(fd==1){
     putbuf(buffer, size);
     return size;
-  }
-  return -1;
+  }  
+  else{
+		struct file *cur= process_get_file(fd);
+		if(cur == NULL)
+        i = 0;
+    i = file_write(cur,buffer,size);
+	}
+  return i;
 } 
 
 void halt(void){
@@ -140,7 +149,24 @@ void halt(void){
 }
 
 pid_t exec(const char *cmd_line){
-  return process_execute(cmd_line);
+  struct thread *child;
+	tid_t pid;
+  struct list_elem *ele;
+	pid = process_execute(cmd_line);
+  struct list *child_list = &(thread_current()->child_list);
+  for(ele = list_begin(child_list); 
+        ele != list_end(child_list);ele = list_next(ele)){
+    if(list_entry(ele, struct thread, child_elem)->tid == pid)
+      child = list_entry(ele, struct thread, child_elem);
+  }
+  /* if(child == NULL){
+      exit(-1);
+  }*/
+ //printf("\nsema down \n");
+	//sema_down(&(child->child_lock));
+ // printf("\n return \n");
+  return pid;
+
 }
 int wait(pid_t pid){
   return process_wait(pid);
@@ -167,7 +193,13 @@ int read(int fd, void *buffer, unsigned size){
         break;
       }
     }
-  }
+  }	
+  else{
+		struct file *cur= process_get_file(fd);
+		if(cur == NULL)
+        i = 0;
+    i = file_read(cur,buffer,size);
+	}
   return i;
 }
 

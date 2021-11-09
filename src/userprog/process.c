@@ -133,14 +133,18 @@ start_process (void *file_name_)
   //printf("\n777777777777777\n");*/
 
   success = load (parse[0], &if_.eip, &if_.esp);
-
+  //sema_up(&(thread_current()->child_lock));
   //printf("\n44444444444444\n");  
+
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
-  if (!success) 
+  if (!success) {
+
     thread_exit ();
-  
+  }
+  //printf("sema up");
+
   //printf("\n55555555555555\n");
   //my code start
   argument_stack(parse, count, &if_.esp);
@@ -200,11 +204,6 @@ process_exit (void)
   struct thread *cur = thread_current ();
   uint32_t *pd;
   enum intr_level old_level;
-
-/* 프로세스에열린모든파일을닫음*/
-/* 파일디스크립터테이블의최대값을이용해파일디스크립터의최소값인2가될때까지파일을닫음*/
-/* 파일디스크립터테이블메모리해제*/
-
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
   pd = cur->pagedir;
@@ -221,6 +220,7 @@ process_exit (void)
       pagedir_activate (NULL);
       pagedir_destroy (pd);
     }
+ //printf("\nsema up \n");    
   sema_up(&(cur->child_lock));
   
   old_level = intr_disable();
@@ -637,15 +637,16 @@ int process_add_file(struct file *f){
 }
 
 struct file *process_get_file(int fd){
-  return (thread_current()->fd_value < fd)? NULL: 
+  return (thread_current()->fd_value <= fd)? NULL: 
           thread_current()->file_descriptor_table[fd];
 }
 
 void process_close_file(int fd){
-  if(thread_current()->fd_value < fd) return;
+  if(thread_current()->fd_value <= fd) return;
   struct file *close = process_get_file(fd);
   if(close == NULL) return;
   file_close(close);
   thread_current()->file_descriptor_table[fd] = NULL;
+  //if(fd == thread_current()->fd_value) thread_current()->fd_value =  thread_current()->fd_value - 1;
   return;
 }

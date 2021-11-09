@@ -94,9 +94,7 @@ struct thread
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 
-#ifdef USERPROG
-    struct file **file_descriptor_table;
-    int fd_value;
+//#ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
     //my code
@@ -104,9 +102,10 @@ struct thread
     struct list child_list;
     struct list_elem child_elem;
     int thread_status;
-#endif
+//#endif
 
-
+    struct file **file_descriptor_table;
+    int fd_value;
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
   };
