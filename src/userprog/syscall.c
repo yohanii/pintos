@@ -9,7 +9,7 @@
 #include "devices/shutdown.h"
 #include "process.h"
 #include "lib/kernel/list.h"
-
+#include "filesys/off_t.h"
 
 
 
@@ -17,6 +17,13 @@
 #define LOW_ADDR 0x8048000
 
 static void syscall_handler (struct intr_frame *);
+
+struct file
+{
+  struct inode *inode;
+  off_t pos;
+  bool deny_write;
+};
 
 void
 syscall_init (void) 
@@ -136,11 +143,15 @@ int write(int fd, const void *buffer, unsigned size){
     return size;
   }  
   else{
-		struct file *cur= process_get_file(fd);
-		if(cur == NULL)
-        i = 0;
+    struct file *cur= process_get_file(fd);
+    if(cur == NULL)
+      i = 0;
+    if(cur->deny_write){
+      file_deny_write(cur);
+    }
+
     i = file_write(cur,buffer,size);
-	}
+  }
   return i;
 } 
 
@@ -178,7 +189,12 @@ bool remove(const char *file){
   return filesys_remove(file);
 }
 int open(const char *file){
-	struct file *open = filesys_open(file);
+  struct file *open = filesys_open(file);
+  
+  if(strcmp(thread_current()->name, file) == 0){
+    file_deny_write(open);
+  }
+
   return (open == NULL)? -1 : process_add_file(open);
 }
 int filesize(int fd){
