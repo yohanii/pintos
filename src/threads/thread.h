@@ -99,6 +99,7 @@ struct thread
     uint32_t *pagedir;                  /* Page directory. */
     //my code
     struct semaphore child_lock;
+    struct semaphore second_lock;
     struct list child_list;
     struct list_elem child_elem;
     int thread_status;

@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <list.h>
 #include "userprog/gdt.h"
 #include "userprog/pagedir.h"
 #include "userprog/tss.h"
@@ -183,21 +184,31 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid) 
 {
+  //printf("\nwait start!!\n");
   struct list child_list = thread_current()->child_list;
   struct list_elem* elem = list_begin(&child_list);
   struct thread* thread = NULL;
   int status;
 
+  //printf("\n1111111111111\n");
   while(elem != list_end(&child_list)){
+    //printf("\n22222222222222\n");
     thread = list_entry(elem, struct thread, child_elem);
+    //printf("\n33333333333333\n");
     if(thread->tid == child_tid){
-      sema_down(&(thread->child_lock));
+      //printf("\n44444444444444\n");
+      sema_down(&thread->child_lock);
       status = thread-> thread_status;
-      thread_unblock(thread);
-      list_remove(&(thread->child_elem));
+      list_remove(&thread->child_elem);
+      sema_up(&thread->second_lock);
       return status;
     }
-    elem = list_next(elem);
+    //printf("\n555555555555555\n\n");
+    //printf("%d\n%d\n", list_begin(&child_list), list_end(&child_list));
+    if(!elem->next){
+      return -1;
+    }
+    elem= list_next(elem);
   }
   return -1;
 }
@@ -208,7 +219,7 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
-  enum intr_level old_level;
+
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
   pd = cur->pagedir;
@@ -226,11 +237,9 @@ process_exit (void)
       pagedir_destroy (pd);
     }
  //printf("\nsema up \n");    
-  sema_up(&(cur->child_lock));
+  sema_up(&cur->child_lock);
+  sema_down(&cur->second_lock);  
   
-  old_level = intr_disable();
-  thread_block();
-  intr_set_level(old_level);
 }
 
 /* Sets up the CPU for running user code in the current
