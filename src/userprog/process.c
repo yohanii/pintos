@@ -52,12 +52,13 @@ process_execute (const char *file_name)
   //printf("\n1111111111111\n");
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (token, PRI_DEFAULT, start_process, fn_copy);
+  
   //printf("\n2222222222222\n");
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy);
    
   palloc_free_page(save_fn);
-  
+    
   return tid;
 }
 
@@ -139,7 +140,7 @@ start_process (void *file_name_)
   //printf("\n777777777777777\n");*/
 
   success = load (parse[0], &if_.eip, &if_.esp);
-  //sema_up(&(thread_current()->child_lock));
+  
   //printf("\n44444444444444\n");  
 
 
@@ -159,16 +160,19 @@ start_process (void *file_name_)
   //if_->edi = count;
   //if_->esi = &if_->esp +8;
   //my code end
-  for(i=0;i<count;i++)
- 	 palloc_free_page(parse[count]);
-  palloc_free_page(parse);
-  palloc_free_page(fn_copy);
+
+  /*for(i=0;i<count;i++)
+ 	palloc_free_page(parse[count]);
+    palloc_free_page(parse);
+    palloc_free_page(fn_copy);*/
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
      threads/intr-stubs.S).  Because intr_exit takes all of its
      arguments on the stack in the form of a `struct intr_frame',
      we just point the stack pointer (%esp) to our stack frame
      and jump to it. */
+  //sema_up(&thread_current()->parent->load_lock);
+
   asm volatile ("movl %0, %%esp; jmp intr_exit" : : "g" (&if_) : "memory");
   NOT_REACHED ();
 }
@@ -198,9 +202,13 @@ process_wait (tid_t child_tid)
     if(thread->tid == child_tid){
       //printf("\n44444444444444\n");
       sema_down(&thread->child_lock);
+      //printf("aaaa\n");
       status = thread-> thread_status;
+      //printf("bbbb\n");
       list_remove(&thread->child_elem);
+      //printf("cccc\n");
       sema_up(&thread->second_lock);
+      //printf("dddd\n");
       return status;
     }
     //printf("\n555555555555555\n\n");

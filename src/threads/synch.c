@@ -60,17 +60,20 @@ sema_init (struct semaphore *sema, unsigned value)
 void
 sema_down (struct semaphore *sema) 
 {
+  
   enum intr_level old_level;
-
+  //printf("sema_down start!");
   ASSERT (sema != NULL);
   ASSERT (!intr_context ());
-
+  //printf("1111\n");
   old_level = intr_disable ();
   while (sema->value == 0) 
-    {
+    { 
+     // printf("2222\n");
       list_push_back (&sema->waiters, &thread_current ()->elem);
       thread_block ();
     }
+  //printf("3333\n");
   sema->value--;
   intr_set_level (old_level);
 }
