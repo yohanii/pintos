@@ -117,10 +117,11 @@ syscall_handler (struct intr_frame *f)
 void get_argument(void *esp, int *arg, int count, int add)
 {
   void *sp = esp + 4 + add;
+  int i;
   if(count <= 0){
     return;
   }
-  for(int i=0; i<count; i++){
+  for(i=0; i<count; i++){
     if(sp>LOW_ADDR && sp < HIGH_ADDR){
       arg[i] = *(int *)sp;
       sp = sp + 4;

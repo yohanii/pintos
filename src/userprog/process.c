@@ -599,8 +599,9 @@ void argument_stack(char **parse, int count, void **esp)
   char *argu_address[128];
 
   int total = 0;
+  int i, j;
   //printf("\n check kernel-panic in argument stack 1, count : %d \n", count);
-  for(int i = count - 1; i >= 0;i--){
+  for(i = count - 1; i >= 0;i--){
     //printf("\n check kernel-panic in argument stack 1 - %d \n", i);
     //char * tmp = parse[i];
     int argv_len = strlen(parse[i]);
@@ -624,12 +625,12 @@ void argument_stack(char **parse, int count, void **esp)
 
   *esp -= total%4 != 0 ? 4-(total%4) : 0;
 
-  for(int i = count;i>=0;i--){
+  for(j = count;j>=0;j--){
     *esp = *esp - 4;
-    if(i==count){
+    if(j==count){
       memset(*esp,0,sizeof(char**));
     }else{
-      memcpy(*esp, &argu_address[i], sizeof(char**));
+      memcpy(*esp, &argu_address[j], sizeof(char**));
     }
   }
   //printf("\n check kernel-panic in argument stack 3 \n");
