@@ -10,8 +10,8 @@
 #include "process.h"
 #include "lib/kernel/list.h"
 #include "filesys/off_t.h"
-
-
+#include "threads/synch.h"
+#include "threads/vaddr.h"
 
 #define HIGH_ADDR 0xc0000000
 #define LOW_ADDR 0x8048000
@@ -24,10 +24,12 @@ struct file
   off_t pos;
   bool deny_write;
 };
+struct lock file_lock;
 
 void
 syscall_init (void) 
 {
+  lock_init(&file_lock);
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
 }
 
@@ -138,20 +140,29 @@ void exit(int status){
 
 int write(int fd, const void *buffer, unsigned size){
   int i;
+  if(!is_user_vaddr(buffer)){
+    exit(-1);
+  }
+
+  lock_acquire(&file_lock);
   if(fd==1){
     putbuf(buffer, size);
+    lock_release(&file_lock);
     return size;
   }  
   else{
     struct file *cur= process_get_file(fd);
-    if(cur == NULL)
-      i = 0;
+    if(cur == NULL){
+      lock_release(&file_lock);
+      exit(-1);
+    }
     if(cur->deny_write){
       file_deny_write(cur);
     }
 
     i = file_write(cur,buffer,size);
   }
+  lock_release(&file_lock);
   return i;
 } 
 
@@ -189,13 +200,27 @@ bool remove(const char *file){
   return filesys_remove(file);
 }
 int open(const char *file){
-  struct file *open = filesys_open(file);
-  
-  if(strcmp(thread_current()->name, file) == 0){
-    file_deny_write(open);
+  int i = -1;
+  if(file==NULL){
+    exit(-1);
   }
+  if(!is_user_vaddr(file)){
+    exit(-1);
+  }
+  lock_acquire(&file_lock);
+  struct file *open = filesys_open(file);
+  if(open == NULL){
+    i=-1;
+  } else{
+    if(strcmp(thread_current()->name, file) == 0){
+      file_deny_write(open);
+    }
 
-  return (open == NULL)? -1 : process_add_file(open);
+    i= process_add_file(open);
+  }
+  lock_release(&file_lock);
+  return i;
+  
 }
 int filesize(int fd){
   struct file *file = process_get_file(fd);
@@ -203,6 +228,10 @@ int filesize(int fd){
 }
 int read(int fd, void *buffer, unsigned size){
   int i;
+  if(!is_user_vaddr(buffer)){
+    exit(-1);
+  }
+  lock_acquire(&file_lock);
   if(fd ==0){
     for(i=0;i<size;i++){
       if(((char*)buffer)[i] == '\0'){
@@ -211,11 +240,13 @@ int read(int fd, void *buffer, unsigned size){
     }
   }	
   else{
-		struct file *cur= process_get_file(fd);
-		if(cur == NULL)
-        i = 0;
+    struct file *cur= process_get_file(fd);
+    if(cur == NULL){
+      exit(-1);
+    }
     i = file_read(cur,buffer,size);
-	}
+  }
+  lock_release(&file_lock);
   return i;
 }
 

@@ -147,8 +147,7 @@ start_process (void *file_name_)
   /* If load failed, quit. */
   palloc_free_page (file_name);
   if (!success) {
-
-    thread_exit ();
+    exit(-1);
   }
   //printf("sema up");
 
