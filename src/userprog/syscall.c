@@ -39,11 +39,11 @@ syscall_handler (struct intr_frame *f)
   void *esp = f->esp;
 
   if(esp>LOW_ADDR && esp < HIGH_ADDR){
-    syscall = *(uint32_t *)esp;
+    syscall = *(int *)esp;
   }else{
     exit(-1);
   }
-
+  //printf("\n syscall : %d \n", syscall);
   switch (syscall) {
     case SYS_HALT:
       halt();
@@ -65,21 +65,42 @@ syscall_handler (struct intr_frame *f)
       if (arg[0] == NULL){
         exit(-1);
       }
-		  f->eax = create((const char *)arg[0],(unsigned)arg[1]);
+        if((void *)arg[0]>= LOW_ADDR && (void *)arg[0] < HIGH_ADDR)
+      {
+		     f->eax = create((const char *)arg[0],(unsigned)arg[1]);
+
+      }else{
+                exit(-1);
+      }
+
       break;
     case SYS_REMOVE:
     	get_argument(esp, arg, 1, 0);
       if(arg[0] == NULL){
         exit(-1);
       }
-		  f->eax = remove((const char *)arg[0]);
+        if((void *)arg[0]>= LOW_ADDR && (void *)arg[0] < HIGH_ADDR)
+      {
+		    f->eax = remove((const char *)arg[0]);
+
+      }else{
+                exit(-1);
+      }
+      
+
       break;
     case SYS_OPEN:
     	get_argument(esp, arg, 1, 0);
       if(arg[0] == NULL){
         exit(-1);
+      }      
+      if((void *)arg[0]>= LOW_ADDR && (void *)arg[0] < HIGH_ADDR)
+      {
+		    f->eax = open((const char *)arg[0]);
+
+      }else{
+                exit(-1);
       }
-		  f->eax = open((const char *)arg[0]);
       break;
     case SYS_FILESIZE:
 		  get_argument(esp, arg, 1, 0);
@@ -87,11 +108,29 @@ syscall_handler (struct intr_frame *f)
       break;
     case SYS_READ:
       get_argument(esp, arg, 3, 16);
-      f->eax = read((int)(arg[0]), (void*)(arg[1]), (unsigned)(arg[2]));
+      if((void *)arg[1]>= LOW_ADDR && (void *)arg[1] < HIGH_ADDR)
+      {
+        f->eax = read((int)(arg[0]), (void*)(arg[1]), (unsigned)(arg[2]));
+
+      }else{
+                exit(-1);
+      }
+
       break;
     case SYS_WRITE:
       get_argument(esp, arg, 3, 16);
-      f->eax = write((int)(arg[0]), (void*)(arg[1]), (unsigned)(arg[2]));
+      //if(f->eip != NULL) printf("\n%p\n",f->eip);
+      //if(f->eip == 0x804a4ae) exit(-1);
+     if((void *)arg[1]>= LOW_ADDR && (void *)arg[1] < HIGH_ADDR)
+      {
+        f->eax = write((int)(arg[0]), (void*)(arg[1]), (unsigned)(arg[2]));
+
+      }else{
+        exit(-1);
+      }
+
+      //if(arg[1] == 0x804c460) exit(-1);
+      //printf("\n%d     %p      %d\n",arg[0], arg[1], arg[2]);
       break;
     case SYS_SEEK:
 		  get_argument(esp, arg, 2, 0);
@@ -137,15 +176,21 @@ void exit(int status){
 }
 
 int write(int fd, const void *buffer, unsigned size){
+  //  printf("\n write start!!!!!!!!!!!! \n");
   int i;
   if(fd==1){
+   //     printf("\n write 111111111111111111 fd: %d size :%d \n",fd, size);
     putbuf(buffer, size);
+   //      printf("\n write 111111111111111111 -1  fd: %d size :%d \n",fd, size);   
     return size;
   }  
   else{
+     //       printf("\n write 222222222222222222222 \n");
     struct file *cur= process_get_file(fd);
+       //         printf("\n write 333333333333333333333333333 \n");
     if(cur == NULL)
-      i = 0;
+      exit(-1);
+  //  printf("\n write 44444444444444444444444444 \n");
     if(cur->deny_write){
       file_deny_write(cur);
     }
@@ -202,6 +247,7 @@ int filesize(int fd){
   return (file == NULL)? -1 : file_length(file);
 }
 int read(int fd, void *buffer, unsigned size){
+    //  printf("\n read start!!!!!!!!!!!! \n");
   int i;
   if(fd ==0){
     for(i=0;i<size;i++){
@@ -212,8 +258,10 @@ int read(int fd, void *buffer, unsigned size){
   }	
   else{
 		struct file *cur= process_get_file(fd);
-		if(cur == NULL)
-        i = 0;
+		if(cur == NULL){
+        exit(-1);
+    }
+
     i = file_read(cur,buffer,size);
 	}
   return i;
