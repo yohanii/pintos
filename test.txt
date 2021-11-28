@@ -1,0 +1,12 @@
+sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty main'
+sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty universe'
+sudo apt update
+sudo apt install gcc-4.4
+
+sudo apt-get install build-essentials
+sudo dpkg -l | grep gcc | awk '{print $2}'
+
+sudo update-alternatives --display gcc
+
+sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.4 40
+
