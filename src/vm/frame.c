@@ -1,6 +1,7 @@
 #include <vm/frame.h>
 
 struct list frame_table;
+struct list lru_list;
 
    
 static struct frame * get_frame (void) {

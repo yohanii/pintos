@@ -2,7 +2,9 @@
 #define VM_FRAME_H
 #include <vm/page.h>
 #include <stdbool.h>
-/*
+
+struct list lru_list;
+
 struct frame {
     void *kva;
     struct page *page;
@@ -15,5 +17,5 @@ bool claim_page (void *va );//UNUSED);
 
 
 
-*/
+
 #endif
