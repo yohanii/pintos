@@ -1,4 +1,4 @@
-#include <frame.h>
+#include <vm/frame.h>
 
 struct list frame_table;
 
@@ -12,6 +12,7 @@ frame 제거*/
 static struct frame *evict_frame (void) {
 /* for문을 이용해 frame_table을 돌면서 해당하는 frame 제거 */
 }
-bool claim_page (void *va UNUSED) {
+bool claim_page (void *va ){//UNUSED) {
 /*user page가 이미 mapping 되었거나 메모리 할당 실패시 false return*/
 }
+
