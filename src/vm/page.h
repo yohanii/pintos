@@ -4,8 +4,18 @@
 #define VM_FILE 1
 #define VM_ANON 2
 
+#include "threads/vaddr.h"
+#include "threads/thread.h"
+#include "threads/malloc.h"
+#include "vm/frame.h"
+#include "userprog/pagedir.h"
+#include "filesys/file.h"
+#include "threads/interrupt.h"
+#include <string.h>
+#include <hash.h>
 #include <list.h>
 #include <stdio.h>
+
 
 struct vm_entry{
    uint8_t type;
@@ -20,7 +30,7 @@ struct vm_entry{
    size_t zero_bytes;
    
    
-   //struct hash_elem elem;
+   struct hash_elem elem;
 };
 
 struct page{
@@ -30,6 +40,6 @@ struct page{
 	struct list_elem lru;
 };
 
-//void vm_init(struct hash *vm);
+void vm_init(struct hash *vm);
  
 #endif

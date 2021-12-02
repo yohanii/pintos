@@ -1,4 +1,12 @@
 #include "vm/page.h"
+#include "threads/vaddr.h"
+#include "threads/thread.h"
+#include "threads/malloc.h"
+#include "vm/frame.h"
+#include "userprog/pagedir.h"
+#include "filesys/file.h"
+#include "threads/interrupt.h"
+#include <string.h>
 
 static unsigned vm_hash_func (const struct hash_elem *e, void *aux UNUSED);
 static bool vm_less_func (const struct hash_elem *a, const struct hash_elem *b, void *aux UNUSED);
