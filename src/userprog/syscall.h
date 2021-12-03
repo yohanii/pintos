@@ -37,5 +37,6 @@ void sys_write (struct intr_frame * f);
 void sys_seek (struct intr_frame * f);
 void sys_tell (struct intr_frame * f);
 void sys_close (struct intr_frame * f);
-
+void check_valid_buffer(void *buffer, unsigned size, void *esp, bool to_write);
+void check_valid_string(const void *str, void *esp);
 #endif /* userprog/syscall.h */

@@ -9,6 +9,7 @@
 #include "userprog/process.h"
 #include "threads/malloc.h"
 #include "threads/vaddr.h"
+#include "vm/page.h"
 
 
 static void syscall_handler (struct intr_frame *);
@@ -455,7 +456,8 @@ void check_valid_buffer(void *buffer, unsigned size, void *esp, bool to_write)
     check_address((void *)check, esp);
     vme = find_vme(vme);
     if(vme != NULL && to_write && vme->writable == false){
-      exit(-1);
+      //sys_exit(-1);
+      return;
     }
 		check++;
   }
@@ -463,10 +465,10 @@ void check_valid_buffer(void *buffer, unsigned size, void *esp, bool to_write)
 void check_valid_string(const void *str, void *esp)
 {
 	char *check = (char *)str;
-	check_address((void *)check_str, esp);
+	check_address((void *)check, esp);
 
   for(;check != 0;){
     check++;
-    check_address((void *)check_str, esp);
+    check_address((void *)check, esp);
   }
 }
