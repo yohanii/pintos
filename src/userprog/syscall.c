@@ -2,12 +2,14 @@
 #include <stdio.h>
 #include <syscall-nr.h>
 #include "threads/thread.h"
+#include "threads/interrupt.h"
 #include "devices/shutdown.h"
 #include "devices/input.h"
 #include "userprog/signal.h"
 #include "userprog/process.h"
 #include "threads/malloc.h"
 #include "threads/vaddr.h"
+
 
 static void syscall_handler (struct intr_frame *);
 
@@ -16,6 +18,7 @@ static bool put_user(uint8_t *udst, uint8_t byte);
 struct file* get_file_from_fd(int fd);
 bool validate_read(void *p, int size);
 bool validate_write(void *p, int size);
+struct vm_entry* check_address(void* addr, void* esp);
 
 static void (*syscall_table[20])(struct intr_frame*) = {
   sys_halt,
@@ -116,6 +119,8 @@ syscall_handler (struct intr_frame *f)
     kill_process();
   }
   
+  check_address(f->esp, f->esp);
+
   (syscall_table[syscall_num])(f);
 }
 
@@ -419,4 +424,23 @@ void sys_close (struct intr_frame * f) {
       return;
     }
   }
+}
+
+
+
+struct vm_entry* check_address(void* addr, void* esp/*Unused*/)
+{
+  if(addr< (void*)0x08048000 || addr>= (void*)0xc0000000)
+  {
+    sys_exit(-1);
+  }
+
+  /*addr이vm_entry에존재하면vm_entry를반환하도록코드작성*/
+  /*find_vme() 사용*/
+  struct vm_entry* vme;
+  
+  if(find_vme(addr)){
+    vme = find_vme(addr);
+  }
+  return vme;
 }
