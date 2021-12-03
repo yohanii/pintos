@@ -444,3 +444,29 @@ struct vm_entry* check_address(void* addr, void* esp/*Unused*/)
   }
   return vme;
 }
+
+void check_valid_buffer(void *buffer, unsigned size, void *esp, bool to_write)
+{
+	struct vm_entry *vme;
+  char *check = (char *)buffer;
+  
+  unsigned i;
+  for(i = 0; i < size; i++){
+    check_address((void *)check, esp);
+    vme = find_vme(vme);
+    if(vme != NULL && to_write && vme->writable == false){
+      exit(-1);
+    }
+		check++;
+  }
+}
+void check_valid_string(const void *str, void *esp)
+{
+	char *check = (char *)str;
+	check_address((void *)check_str, esp);
+
+  for(;check != 0;){
+    check++;
+    check_address((void *)check_str, esp);
+  }
+}
