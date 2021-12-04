@@ -40,6 +40,15 @@ struct page{
 	struct list_elem lru;
 };
 
+struct mmap_file
+  {
+    int mapid;
+    struct file *file;
+    struct list_elem elem;
+    struct list vme_list;
+  };
+
+
 void vm_init(struct hash *vm);
 bool insert_vme(struct hash *vm, struct vm_entry*vme);
 bool delete_vme(struct hash *vm, struct vm_entry*vme);
@@ -47,5 +56,5 @@ struct vm_entry *find_vme(void*vaddr);
 void vm_destroy(struct hash *vm);
 void vm_destroy_func(struct hash_elem *e, void*aux UNUSED);
 struct page *get_page_by_kaddr(void *kaddr);
- 
+ bool load_file(void *kaddr, struct vm_entry *vme);
 #endif

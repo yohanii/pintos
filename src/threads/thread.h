@@ -111,8 +111,10 @@ struct thread
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
 
+	struct hash vm;
 
-    struct hash vm;
+	struct list mmap_list;
+	int mapid;
   };
 
 /* If false (default), use round-robin scheduler.

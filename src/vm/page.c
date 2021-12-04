@@ -105,3 +105,16 @@ get_page_by_kaddr(void *kaddr)
   }
   return NULL;
 }
+
+
+bool load_file(void *kaddr, struct vm_entry *vme)
+{
+	bool success = false;   
+  int return_value = file_read_at(vme->file, kaddr, vme->read_bytes, vme->offset);
+	if((int)vme->read_bytes == return_value)
+	{
+		success = true;
+		memset(kaddr + vme->read_bytes, 0, vme->zero_bytes);
+	} 
+	return success;
+}

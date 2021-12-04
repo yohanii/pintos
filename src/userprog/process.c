@@ -583,3 +583,44 @@ install_page (void *upage, void *kpage, bool writable)
   return (pagedir_get_page (t->pagedir, upage) == NULL
           && pagedir_set_page (t->pagedir, upage, kpage, writable));
 }
+
+
+bool handle_mm_fault(struct vm_entry *vme)
+{
+  bool success = false;
+  void *kaddr;
+  struct page * new_page = palloc_get_page(PAL_USER);
+  new_page->vme = vme;
+
+	if(vme->is_loaded == true){ 
+		free_page(new_page);
+		return false;
+	}
+	if(new_page == NULL)
+		return false;
+
+	switch(vme->type)                
+	{
+		case VM_BIN:
+      success = load_file(kaddr, vme);
+			break;
+		case VM_FILE:
+      success = load_file(new_page->kaddr, vme);
+			break;
+		default:
+			return false;
+	}
+  if(success == false){
+    free_page(new_page->kaddr);
+		return false;
+  }
+
+	if(install_page(vme->vaddr,new_page->kaddr, vme->writable) == false)
+	{
+		free_page(new_page->kaddr);
+		return false;
+	}
+
+	vme->is_loaded = true;
+	return true;
+}
