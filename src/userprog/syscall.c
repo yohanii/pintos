@@ -154,6 +154,8 @@ void sys_exec (struct intr_frame * f) {
   cmd_line = *(char**)(f->esp + 4);
   itr = cmd_line;
   
+  check_valid_string(cmd_line, f->esp);
+
   if(!validate_read((void*)cmd_line, 1)) kill_process();
   
   while(*itr != '\0') {
@@ -186,6 +188,8 @@ void sys_create (struct intr_frame * f) {
   initial_size = *(unsigned*)(f->esp + 8);
   itr = name;
   
+  check_valid_string(name, f->esp);
+
   if(!validate_read((void*)name, 1)) kill_process();
 
   while(*itr != '\0') {
@@ -207,6 +211,8 @@ void sys_remove (struct intr_frame * f) {
   
   name = *(char **)(f->esp + 4);
   itr = name;
+  
+  check_valid_string(name, f->esp);
   
   if(!validate_read((void*)name, 1)) kill_process();
 
@@ -234,6 +240,8 @@ void sys_open (struct intr_frame * f) {
 
   name = *(char **)(f->esp + 4);
   itr = name;
+
+  check_valid_string(name, f->esp);
 
   if(!validate_read((void*)name, 1)) kill_process();
 
@@ -301,10 +309,13 @@ void sys_read (struct intr_frame * f) {
   
   if(!validate_read(f->esp + 4, 12)) kill_process();
   
+  
   fd = *(int*)(f->esp + 4);
   buffer = *(uint8_t**)(f->esp + 8);
   size = *(unsigned*)(f->esp + 12);
   file = get_file_from_fd(fd); 
+
+  check_valid_buffer(buffer, size, f->esp, true);
   
   if(!validate_write(buffer, size)) kill_process();
   
@@ -345,6 +356,8 @@ void sys_write (struct intr_frame * f) {
   buffer = *(char**)(f->esp + 8);
   size = *(unsigned*)(f->esp + 12);
   file = get_file_from_fd(fd);
+
+  check_valid_buffer(buffer, size, f->esp, false);
   
   if(!validate_read(buffer, size)) kill_process();
   
