@@ -5,10 +5,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <threads/malloc.h>
 #include "userprog/gdt.h"
 #include "userprog/pagedir.h"
 #include "userprog/tss.h"
-#include "userprog/signal.h"
+#include "userprog/syscall.h"
 #include "filesys/directory.h"
 #include "filesys/file.h"
 #include "filesys/filesys.h"
@@ -18,9 +19,9 @@
 #include "threads/palloc.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
-#include "threads/malloc.h"
-#include "userprog/syscall.h"
 #include "vm/page.h"
+#include "threads/malloc.h"
+#include "userprog/signal.h"
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
@@ -582,4 +583,34 @@ install_page (void *upage, void *kpage, bool writable)
      address, then map our page there. */
   return (pagedir_get_page (t->pagedir, upage) == NULL
           && pagedir_set_page (t->pagedir, upage, kpage, writable));
+}
+
+bool handle_mm_fault(struct vm_entry* vme)
+{
+
+  struct page *pg = palloc_get_page(PAL_USER);
+	pg->vme = vme;
+
+  if(pg == NULL){
+    return false;
+  }
+		
+  switch(vme->type){
+    case VM_BIN:
+			if(!load_file(pg->kaddr,vme))
+			{
+				palloc_free_page(pg->kaddr);
+				return false;
+			}
+			break;
+  }
+
+  if(install_page(vme->vaddr, pg->kaddr, vme->writable) == false)
+	{
+		palloc_free_page(pg->kaddr);
+		return false;
+	}
+
+  vme->is_loaded = true;
+	return true;
 }
