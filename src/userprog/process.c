@@ -20,12 +20,15 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 #include "vm/page.h"
+#include "vm/frame.h"
+#include "vm/swap.h"
 #include "threads/malloc.h"
 #include "userprog/signal.h"
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
-
+bool 
+handle_mm_fault(struct vm_entry* vme);
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
    before process_execute() returns.  Returns the new process's
@@ -585,7 +588,8 @@ install_page (void *upage, void *kpage, bool writable)
           && pagedir_set_page (t->pagedir, upage, kpage, writable));
 }
 
-bool handle_mm_fault(struct vm_entry* vme)
+bool 
+handle_mm_fault(struct vm_entry* vme)
 {
 
   struct page *pg = palloc_get_page(PAL_USER);
@@ -594,20 +598,21 @@ bool handle_mm_fault(struct vm_entry* vme)
   if(pg == NULL){
     return false;
   }
-		
+
   switch(vme->type){
     case VM_BIN:
+    case VM_FILE:
 			if(!load_file(pg->kaddr,vme))
 			{
 				palloc_free_page(pg->kaddr);
 				return false;
 			}
 			break;
-    case VM_FILE:
-      success = load_file(new_page->kaddr, vme);
-			break;
-		default:
-			return false;
+    case VM_ANON:
+      swap_in (vme->swap_slot, pg->kaddr);
+      break;
+    default:
+      return false;
   }
 
   if(install_page(vme->vaddr, pg->kaddr, vme->writable) == false)
