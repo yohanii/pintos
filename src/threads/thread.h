@@ -110,7 +110,8 @@ struct thread
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
-
+    struct list mmap_list;
+	  int mapid;
 
     struct hash vm;
   };

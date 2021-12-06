@@ -603,6 +603,11 @@ bool handle_mm_fault(struct vm_entry* vme)
 				return false;
 			}
 			break;
+    case VM_FILE:
+      success = load_file(new_page->kaddr, vme);
+			break;
+		default:
+			return false;
   }
 
   if(install_page(vme->vaddr, pg->kaddr, vme->writable) == false)

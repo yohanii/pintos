@@ -486,4 +486,10 @@ void check_valid_string(const void *str, void *esp)
   }
 }
 
+int mmap(int fd, void *addr){
 
+}
+void munmap(int mapping)
+{
+
+} 

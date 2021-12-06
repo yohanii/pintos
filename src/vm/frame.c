@@ -17,3 +17,24 @@ bool claim_page (void *va ){//UNUSED) {
 /*user page가 이미 mapping 되었거나 메모리 할당 실패시 false return*/
 }
 
+void free_page(void *kaddr)
+{
+
+}
+
+void __free_page(struct page *page)
+{
+
+}
+
+
+void add_page_to_lru_list(struct page *page){
+
+}
+
+void del_page_from_lru_list(struct page *page){
+  
+}
+struct list_elem* get_next_lru_clock(void){
+  
+}
