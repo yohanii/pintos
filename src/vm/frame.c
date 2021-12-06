@@ -26,13 +26,25 @@ bool claim_page (void *va ){
 }
 
 void free_page(void *kaddr)
-{
-
+{	
+  struct list_elem *elem;
+  for (elem = list_begin (&lru_list);
+       elem != list_end (&lru_list);
+       elem = list_next (elem))
+    {
+      struct page *page = list_entry (elem, struct page, lru);
+      if (page->kaddr == kaddr){
+         __free_page(page);
+         break;
+      }
+    }
 }
 
 void __free_page(struct page *page)
 {
-
+	palloc_free_page(page->kaddr);
+	del_page_from_lru_list(page);
+	free(page);
 }
 
 
