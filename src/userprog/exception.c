@@ -5,12 +5,15 @@
 #include "userprog/signal.h"
 #include "threads/interrupt.h"
 #include "threads/thread.h"
+#include "threads/vaddr.h"
 
 /* Number of page faults processed. */
 static long long page_fault_cnt;
 
 static void kill (struct intr_frame *);
 static void page_fault (struct intr_frame *);
+
+bool verify_stack (int32_t addr, int32_t esp);
 
 /* Registers handlers for interrupts that can be caused by user
    programs.
@@ -132,6 +135,8 @@ page_fault (struct intr_frame *f)
   bool user;         /* True: access by user, false: access by kernel. */
   void *fault_addr;  /* Fault address. */
   
+   printf("Page fault start!\n");
+
   /* Obtain faulting address, the virtual address that was
      accessed to cause the fault.  It may point to code or to
      data.  It is not necessarily the address of the instruction
@@ -152,34 +157,42 @@ page_fault (struct intr_frame *f)
   not_present = (f->error_code & PF_P) == 0;
   write = (f->error_code & PF_W) != 0;
   user = (f->error_code & PF_U) != 0;
-  
-  if(!user) {
+  printf("0000000000000\n");
+  /* if(!user) {
     f->error_code = 0;
     f->eip = (void (*)(void)) f->eax;
     f->eax = -1;
     return;
-  }
+  } */
   
-
+   printf("111111111111\n");
    struct vm_entry *vmentry;
    if (!not_present){
       sys_exit (-1);
    }
-      
+   printf("222222222222\n");
    vmentry = find_vme (fault_addr);
-
+   printf("3333333333333\n");
    if (!vmentry){
-      //if (!verify_stack ((int32_t) fault_addr, f->esp)){
-      //   exit (-1);
-      ///}
+      printf("vmentry false\n");
+      if (!verify_stack ((int32_t) fault_addr, f->esp)){
+         sys_exit (-1);
+      }
       
-      //expand_stack (fault_addr);
+      expand_stack (fault_addr);
       return;
    }
+   printf("444444444444\n");
    if (!handle_mm_fault (vmentry)){
       sys_exit (-1);
    }
       
-
+   printf("Page fault end!\n");
 }
 
+bool
+verify_stack (int32_t addr, int32_t esp)
+{
+  return is_user_vaddr (addr) && esp - addr <= 32
+      && 0xC0000000UL - addr <= 8 * 1024 * 1024;
+}

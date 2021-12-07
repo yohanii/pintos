@@ -480,8 +480,9 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
   ASSERT ((read_bytes + zero_bytes) % PGSIZE == 0);
   ASSERT (pg_ofs (upage) == 0);
   ASSERT (ofs % PGSIZE == 0);
-
+  printf("Load_segment start!\n");
   file_seek (file, ofs);
+
   while (read_bytes > 0 || zero_bytes > 0) 
     {
       /* Calculate how to fill this page.
@@ -523,14 +524,16 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       vmentry->writable = writable;
       vmentry->vaddr = upage;
 
+      printf("111111111111111111\n");
       insert_vme (&thread_current ()->vm, vmentry);
-
+      printf("222222222222222222\n");
 
       /* Advance. */
       read_bytes -= page_read_bytes;
       zero_bytes -= page_zero_bytes;
       upage += PGSIZE;
     }
+  printf("33333333333333333333\n");
   return true;
 }
 
@@ -541,6 +544,8 @@ setup_stack (void **esp)
 {
   struct page *kpage;
   bool success = false;
+
+  printf("Setup stack start!\n");
 
   struct vm_entry *vme = (struct vm_entry *)malloc(sizeof(struct vm_entry));
 
@@ -564,7 +569,7 @@ setup_stack (void **esp)
       insert_vme (&thread_current ()->vm, kpage->vme);
     }
 
-
+  printf("Setup stack end!\n");
   return success;
 }
 
@@ -582,8 +587,6 @@ install_page (void *upage, void *kpage, bool writable)
 {
   struct thread *t = thread_current ();
 
-  /* Verify that there's not already a page at that virtual
-     address, then map our page there. */
   return (pagedir_get_page (t->pagedir, upage) == NULL
           && pagedir_set_page (t->pagedir, upage, kpage, writable));
 }
@@ -591,36 +594,90 @@ install_page (void *upage, void *kpage, bool writable)
 bool 
 handle_mm_fault(struct vm_entry* vme)
 {
-
-  struct page *pg = palloc_get_page(PAL_USER);
+  printf("handle_mm_fault start!\n");
+  struct page *pg = alloc_page(PAL_USER);
 	pg->vme = vme;
-
+  printf("aaaaa\n");
   if(pg == NULL){
     return false;
   }
-
+  printf("bbbbb\n");
+  printf("type : %u\n", vme->type);
   switch(vme->type){
     case VM_BIN:
     case VM_FILE:
+      printf("In the case\n");
 			if(!load_file(pg->kaddr,vme))
 			{
-				palloc_free_page(pg->kaddr);
+        printf("load_file false");
+				palloc_free_page(pg);
 				return false;
 			}
-			break;
+      printf("ccccc\n");
+			if(!install_page(vme->vaddr, pg->kaddr, vme->writable))
+      {
+        printf("ddddd\n");
+        palloc_free_page(pg);
+        return false;
+      }
+      printf("eeeee\n");
+      vme->is_loaded = true;
+      return true;
     case VM_ANON:
+      printf("VM_ANON\n");
       swap_in (vme->swap_slot, pg->kaddr);
-      break;
+      if(!install_page(vme->vaddr, pg->kaddr, vme->writable))
+      {
+        printf("ddddd\n");
+        palloc_free_page(pg);
+        return false;
+      }
+      printf("eeeee\n");
+      vme->is_loaded = true;
+      return true;
     default:
       return false;
   }
+  printf("ccccc\n");
+  
+}
 
-  if(install_page(vme->vaddr, pg->kaddr, vme->writable) == false)
-	{
-		palloc_free_page(pg->kaddr);
-		return false;
-	}
 
-  vme->is_loaded = true;
-	return true;
+void
+expand_stack (void *addr)
+{
+  printf("In the expand_stack\n");
+  struct page *kpage;
+  void *upage = pg_round_down (addr);
+
+  struct vm_entry *vme = (struct vm_entry *)malloc(sizeof(struct vm_entry));
+  if (vme == NULL)
+  {
+    printf("vme == null\n");
+    return false;
+  }
+    
+
+  kpage = palloc_get_page (PAL_USER | PAL_ZERO);
+  if (kpage != NULL)
+    {
+      printf("kpage == null\n");
+      kpage->vme = vme;
+      add_page_to_lru_list (kpage);
+
+      if (!install_page (upage, kpage->kaddr, true))
+        {
+          //free_page_kaddr (kpage);
+          free (vme);
+          return false;
+        }
+
+      memset (kpage->vme, 0, sizeof (struct vm_entry));
+      kpage->vme->type = VM_ANON;
+      kpage->vme->vaddr = upage;
+      kpage->vme->writable = true;
+      kpage->vme->is_loaded = true;
+
+      insert_vme (&thread_current ()->vm, kpage->vme);
+    }
 }
